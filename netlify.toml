@@ -1,0 +1,13 @@
+[build]
+  command = "npm ci --include=dev && npx vite build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NODE_ENV = "development"
+  NPM_CONFIG_PRODUCTION = "false"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
