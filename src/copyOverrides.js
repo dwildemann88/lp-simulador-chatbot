@@ -1,140 +1,168 @@
-const TEXT_REPLACEMENTS = new Map([
-  ["Antes de pedir orçamento, entenda sua conta de luz.", "Faça sua simulação e solicite seu orçamento."],
-  ["Simular economia", "Fazer simulação"],
-  ["Simule sua economia", "Simulação e orçamento"],
-  ["Descubra quanto você pode economizar.", "Simule seu cenário e solicite seu orçamento."],
-  [
-    "Nossa simulação é rápida, gratuita e sem compromisso. Em poucos passos, você entende sua estrutura e potencial de economia.",
-    "Nossa simulação é rápida, gratuita e sem compromisso. Em poucos passos, você vê uma estimativa inicial e pode avançar para uma análise personalizada."
-  ],
-  ["Para liberar sua estimativa", "Veja sua simulação e avance para o orçamento"],
-  [
-    "Preencha seus dados. Assim a PROJEM consegue salvar o lead e continuar a análise se você quiser avançar.",
-    "Informe seu nome e WhatsApp para visualizar a estimativa e permitir que nossa equipe continue a análise se você quiser solicitar uma proposta."
-  ],
-  ["Ver minha estimativa", "Ver minha simulação"],
-  ["Sua estimativa inicial", "Sua simulação inicial"],
-  [
-    "Esse valor é uma projeção. A análise da fatura deixa o cenário mais preciso.",
-    "Os valores abaixo são estimativas. Para receber um orçamento adequado ao seu consumo e imóvel, avance para o WhatsApp."
-  ],
-  ["Receber análise pelo WhatsApp", "Solicitar orçamento pelo WhatsApp"],
-  ["Envie sua fatura para análise", "Envie sua fatura para análise e orçamento"],
-  ["Ir para o WhatsApp", "Enviar fatura e pedir orçamento"],
-  ["Simule sua economia sem compromisso.", "Faça sua simulação e avance para seu orçamento."],
-  ["Simular agora", "Começar simulação"],
-  ["Economia", "Orçamento"],
-  ["Receba uma estimativa com mais clareza.", "Avance para uma proposta adequada ao seu cenário."]
-]);
+const COPY = {
+  heroTitle: 'Faça sua simulação e solicite seu orçamento.',
+  heroSupport: 'Informe sua conta de luz em poucos passos, veja uma estimativa inicial e avance para uma análise personalizada da PROJEM.',
+  topCta: 'Fazer simulação',
+  heroCta: 'Simular e pedir orçamento',
+  sectionLabel: 'Simulação e orçamento',
+  sectionTitle: 'Simule seu cenário e solicite seu orçamento.',
+  sectionSupport: 'Nossa simulação é rápida, gratuita e sem compromisso. Em poucos passos, você vê uma estimativa inicial e pode avançar para uma análise personalizada.',
+};
 
-const PARTIAL_REPLACEMENTS = [
-  [
-    "Simule sua economia ou envie sua fatura para uma análise técnica gratuita e descubra o melhor caminho para pagar a luz pelo preço certo.",
-    "Informe sua conta de luz em poucos passos, veja uma estimativa inicial e avance para uma análise personalizada da PROJEM."
-  ],
-  [
-    "Preencha os dados e vá para o WhatsApp. O arquivo da fatura é opcional; você também pode anexar direto na conversa.",
-    "Preencha os dados e vá para o WhatsApp. A fatura ajuda nossa equipe a analisar seu consumo e preparar o próximo passo; o arquivo também pode ser anexado direto na conversa."
-  ]
-];
+function normalize(value = '') {
+  return String(value).replace(/\s+/g, ' ').trim();
+}
 
-const WHATSAPP_REPLACEMENTS = [
-  [
-    "Olá, vim pelo site. Gostaria de tirar algumas dúvidas.",
-    "Olá, vim pelo site da PROJEM. Quero fazer um orçamento de energia solar."
-  ],
-  [
-    "Olá, fiz uma simulação no site da PROJEM e gostaria de uma análise técnica.",
-    "Olá, fiz uma simulação no site da PROJEM e quero solicitar um orçamento de energia solar."
-  ],
-  [
-    "Olá, gostaria de enviar minha fatura para uma análise técnica da PROJEM.",
-    "Olá, gostaria de enviar minha fatura para uma análise da PROJEM e solicitar um orçamento de energia solar."
-  ]
-];
+function setText(element, text) {
+  if (!element || normalize(element.textContent) === normalize(text)) return;
+  element.textContent = text;
+}
 
-function replaceTextNode(node) {
-  if (!node?.nodeValue) return;
+function setTextKeepingIcon(element, text) {
+  if (!element) return;
+  const current = normalize(element.textContent);
+  if (current === normalize(text)) return;
 
-  const parent = node.parentElement;
-  if (!parent || ["SCRIPT", "STYLE", "TEXTAREA", "INPUT"].includes(parent.tagName)) return;
+  const textNodes = [...element.childNodes].filter(
+    (node) => node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()
+  );
 
-  const trimmed = node.nodeValue.trim();
-  if (!trimmed) return;
-
-  const exact = TEXT_REPLACEMENTS.get(trimmed);
-  if (exact) {
-    node.nodeValue = node.nodeValue.replace(trimmed, exact);
+  if (textNodes.length) {
+    const target = textNodes[textNodes.length - 1];
+    target.nodeValue = ` ${text}`;
     return;
   }
 
-  let next = node.nodeValue;
-  for (const [from, to] of PARTIAL_REPLACEMENTS) {
-    if (next.includes(from)) next = next.replace(from, to);
-  }
-  if (next !== node.nodeValue) node.nodeValue = next;
+  element.append(document.createTextNode(` ${text}`));
 }
 
-function rewriteWhatsappLink(anchor) {
-  const href = anchor.getAttribute("href");
-  if (!href || !href.includes("wa.me/555599686302")) return;
-
-  try {
-    const url = new URL(href, window.location.origin);
-    const current = url.searchParams.get("text");
-    if (!current) return;
-
-    let next = current;
-    for (const [from, to] of WHATSAPP_REPLACEMENTS) {
-      if (next.includes(from)) next = next.replace(from, to);
-    }
-
-    if (next !== current) {
-      url.searchParams.set("text", next);
-      anchor.setAttribute("href", url.toString());
-    }
-  } catch {
-    // Mantém o fluxo original caso o href ainda esteja incompleto durante a renderização.
-  }
-}
-
-function applyCopyOverrides(root = document.body) {
-  if (!root) return;
-
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let node = walker.nextNode();
-  while (node) {
-    replaceTextNode(node);
-    node = walker.nextNode();
+function applyHeroCopy() {
+  const title = document.querySelector('.heroCopy h1');
+  if (title && normalize(title.textContent) !== COPY.heroTitle) {
+    title.innerHTML = 'Faça sua simulação e <span>solicite seu orçamento.</span>';
   }
 
-  if (root.matches?.('a[href*="wa.me/555599686302"]')) rewriteWhatsappLink(root);
-  root.querySelectorAll?.('a[href*="wa.me/555599686302"]').forEach(rewriteWhatsappLink);
+  setText(document.querySelector('.heroCopy > p'), COPY.heroSupport);
+
+  const topCta = document.querySelector('.topCta');
+  if (topCta) topCta.setAttribute('aria-label', COPY.topCta);
+  setText(document.querySelector('.topCta span'), COPY.topCta);
+  setTextKeepingIcon(document.querySelector('.drawerCta'), COPY.topCta);
+  setTextKeepingIcon(document.querySelector('.heroButtons .primaryButton'), COPY.heroCta);
 }
 
-function startCopyOverrides() {
-  applyCopyOverrides();
+function applySimulatorCopy() {
+  setText(document.querySelector('.economyText .sectionLabel'), COPY.sectionLabel);
+  setText(document.querySelector('.economyText h2'), COPY.sectionTitle);
+  setText(document.querySelector('.economyText > p'), COPY.sectionSupport);
+  setText(document.querySelector('.modeTabs button:first-child'), 'Fazer simulação');
 
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.TEXT_NODE) replaceTextNode(node);
-        if (node.nodeType === Node.ELEMENT_NODE) applyCopyOverrides(node);
+  setText(document.querySelector('.resultGate h3'), 'Veja sua simulação e avance para o orçamento');
+  setText(
+    document.querySelector('.resultGate > p'),
+    'Informe seu nome e WhatsApp para visualizar a estimativa e permitir que nossa equipe continue a análise se você quiser solicitar uma proposta.'
+  );
+  setTextKeepingIcon(document.querySelector('.revealButton'), 'Ver minha simulação');
+
+  const resultFlow = document.querySelector('.resultFlow');
+  if (resultFlow) {
+    setText(resultFlow.querySelector('h3'), 'Sua simulação inicial');
+    setText(
+      resultFlow.querySelector(':scope > div > p'),
+      'Os valores abaixo são estimativas. Para receber um orçamento adequado ao seu consumo e imóvel, avance para o WhatsApp.'
+    );
+    setTextKeepingIcon(resultFlow.querySelector(':scope > button.primaryButton'), 'Solicitar orçamento pelo WhatsApp');
+  }
+
+  setText(document.querySelector('.invoiceIntro h3'), 'Envie sua fatura para análise e orçamento');
+  setText(
+    document.querySelector('.invoiceIntro p'),
+    'Preencha os dados e vá para o WhatsApp. A fatura ajuda nossa equipe a analisar seu consumo e preparar o próximo passo; o arquivo também pode ser anexado direto na conversa.'
+  );
+  setTextKeepingIcon(document.querySelector('.invoiceSubmitButton'), 'Enviar fatura e pedir orçamento');
+}
+
+function applySupportingCopy() {
+  document.querySelectorAll('.stepCard').forEach((card) => {
+    const heading = card.querySelector('h3');
+    if (normalize(heading?.textContent) !== 'Economia' && normalize(heading?.textContent) !== 'Orçamento') return;
+    setText(heading, 'Orçamento');
+    setText(card.querySelector('p'), 'Avance para uma proposta adequada ao seu cenário.');
+  });
+
+  setTextKeepingIcon(document.querySelector('.trustText .primaryButton.wide'), 'Fazer simulação');
+  setText(document.querySelector('.footerCta h3'), 'Faça sua simulação e avance para seu orçamento.');
+  setTextKeepingIcon(document.querySelector('.footerCta .primaryButton'), 'Começar simulação');
+}
+
+const WHATSAPP_REPLACEMENTS = [
+  [
+    'Olá, vim pelo site. Gostaria de tirar algumas dúvidas.',
+    'Olá, vim pelo site da PROJEM. Quero fazer um orçamento de energia solar.',
+  ],
+  [
+    'Olá, fiz uma simulação no site da PROJEM e gostaria de uma análise técnica.',
+    'Olá, fiz uma simulação no site da PROJEM e quero solicitar um orçamento de energia solar.',
+  ],
+  [
+    'Olá, gostaria de enviar minha fatura para uma análise técnica da PROJEM.',
+    'Olá, gostaria de enviar minha fatura para uma análise da PROJEM e solicitar um orçamento de energia solar.',
+  ],
+];
+
+function rewriteWhatsappLinks() {
+  document.querySelectorAll('a[href*="wa.me/555599686302"]').forEach((anchor) => {
+    try {
+      const url = new URL(anchor.href);
+      const current = url.searchParams.get('text');
+      if (!current) return;
+
+      let next = current;
+      WHATSAPP_REPLACEMENTS.forEach(([from, to]) => {
+        if (next.includes(from)) next = next.replace(from, to);
       });
 
-      if (mutation.type === "attributes" && mutation.target instanceof HTMLAnchorElement) {
-        rewriteWhatsappLink(mutation.target);
+      if (next !== current) {
+        url.searchParams.set('text', next);
+        anchor.href = url.toString();
       }
+    } catch {
+      // Mantém o link original se ele ainda estiver incompleto durante a renderização.
     }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["href"]
   });
 }
 
-if (document.body) startCopyOverrides();
-else window.addEventListener("DOMContentLoaded", startCopyOverrides, { once: true });
+function applyCopy() {
+  applyHeroCopy();
+  applySimulatorCopy();
+  applySupportingCopy();
+  rewriteWhatsappLinks();
+}
+
+let scheduled = false;
+function scheduleApply() {
+  if (scheduled) return;
+  scheduled = true;
+  requestAnimationFrame(() => {
+    scheduled = false;
+    applyCopy();
+  });
+}
+
+function start() {
+  scheduleApply();
+
+  const root = document.getElementById('root');
+  if (!root) return;
+
+  const observer = new MutationObserver(scheduleApply);
+  observer.observe(root, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', start, { once: true });
+} else {
+  start();
+}
