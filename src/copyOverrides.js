@@ -1,18 +1,15 @@
-const COPY = {
-  heroTitle: 'Receba seu orçamento de energia solar em poucos minutos.',
-  heroSupport: 'Envie sua fatura ou faça uma simulação rápida. A PROJEM analisa o seu consumo e prepara uma proposta adequada para o seu imóvel.',
-  simulatorCta: 'Simular minha economia',
-  whatsappCta: 'Falar pelo WhatsApp',
-};
-
+const HERO_TITLE = 'Receba seu orçamento de energia solar em poucos minutos.';
+const HERO_SUPPORT = 'Envie sua fatura ou faça uma simulação rápida. A PROJEM analisa o seu consumo e prepara uma proposta adequada para o seu imóvel.';
 const WHATSAPP_NUMBER = '555599686302';
-const WHATSAPP_MESSAGES = {
-  quote: 'Olá! Vim pelo site da PROJEM e gostaria de receber um orçamento de energia solar. Posso enviar minha fatura para análise?',
-  question: 'Olá! Vim pelo site da PROJEM e tenho uma dúvida sobre energia solar.',
-};
+const WHATSAPP_QUOTE_MESSAGE = 'Olá! Vim pelo site da PROJEM e gostaria de receber um orçamento de energia solar. Posso enviar minha fatura para análise?';
+const WHATSAPP_QUESTION_MESSAGE = 'Olá! Vim pelo site da PROJEM e tenho uma dúvida sobre energia solar.';
 
 function normalize(value = '') {
   return String(value).replace(/\s+/g, ' ').trim();
+}
+
+function buildWhatsappUrl(message = WHATSAPP_QUOTE_MESSAGE) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
 function setText(element, text) {
@@ -34,15 +31,11 @@ function setTextKeepingIcon(element, text) {
 
   const label = element.querySelector('span:not(.chatbotNotificationBadge)');
   if (label) {
-    setText(label, text);
+    label.textContent = text;
     return;
   }
 
   element.append(document.createTextNode(` ${text}`));
-}
-
-function buildWhatsappUrl(message = WHATSAPP_MESSAGES.quote) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
 function trackWhatsappSource(source) {
@@ -56,7 +49,7 @@ function trackWhatsappSource(source) {
   });
 }
 
-function bindDirectWhatsapp(element, source, message = WHATSAPP_MESSAGES.quote) {
+function configureWhatsappLink(element, source, message = WHATSAPP_QUOTE_MESSAGE) {
   if (!element) return;
 
   element.href = buildWhatsappUrl(message);
@@ -64,35 +57,58 @@ function bindDirectWhatsapp(element, source, message = WHATSAPP_MESSAGES.quote) 
   element.rel = 'noopener noreferrer';
   element.classList.add('whatsappDestination');
 
-  if (element.dataset.directWhatsappBound === '1') return;
-  element.dataset.directWhatsappBound = '1';
-
-  element.addEventListener(
-    'click',
-    (event) => {
-      event.stopPropagation();
-      trackWhatsappSource(source);
-    },
-    true
-  );
+  if (element.dataset.whatsappTrackingBound === '1') return;
+  element.dataset.whatsappTrackingBound = '1';
+  element.addEventListener('click', () => trackWhatsappSource(source), true);
 }
 
-function applyHero() {
+function applyHeroChanges() {
   const title = document.querySelector('.heroCopy h1');
-  if (title && normalize(title.textContent) !== COPY.heroTitle) {
+  if (title && normalize(title.textContent) !== HERO_TITLE) {
     title.innerHTML = 'Receba seu orçamento de energia solar <span>em poucos minutos.</span>';
   }
 
-  setText(document.querySelector('.heroCopy > p'), COPY.heroSupport);
-
-  const simulatorButton = document.querySelector('.heroButtons .primaryButton');
-  setTextKeepingIcon(simulatorButton, COPY.simulatorCta);
+  setText(document.querySelector('.heroCopy > p'), HERO_SUPPORT);
+  setTextKeepingIcon(document.querySelector('.heroButtons .primaryButton'), 'Simular minha economia');
 
   const whatsappButton = document.querySelector('.heroButtons .outlineButton');
   if (whatsappButton) {
-    setTextKeepingIcon(whatsappButton, COPY.whatsappCta);
-    whatsappButton.classList.add('heroWhatsappButton');
-    bindDirectWhatsapp(whatsappButton, 'hero_whatsapp');
+    setTextKeepingIcon(whatsappButton, 'Falar pelo WhatsApp');
+    whatsappButton.classList.add('whatsappActionButton');
+    configureWhatsappLink(whatsappButton, 'hero_whatsapp');
+  }
+}
+
+function createSimulatorWhatsappCard(variant) {
+  const card = document.createElement('aside');
+  card.className = `simulatorWhatsappCard simulatorWhatsappCard--${variant}`;
+  card.innerHTML = `
+    <span class="simulatorWhatsappEyebrow">ATENDIMENTO DIRETO</span>
+    <h3>Prefere falar com a equipe?</h3>
+    <p>Envie sua fatura direto pelo WhatsApp e avance com seu orçamento.</p>
+    <a href="${buildWhatsappUrl()}" target="_blank" rel="noopener noreferrer">
+      Falar pelo WhatsApp
+    </a>
+  `;
+
+  const link = card.querySelector('a');
+  link.classList.add('whatsappDestination');
+  link.addEventListener('click', () => trackWhatsappSource(`simulador_${variant}_whatsapp`), true);
+  return card;
+}
+
+function ensureSimulatorWhatsappCtas() {
+  const economyGrid = document.querySelector('.economyGrid');
+  const visualWrap = document.querySelector('.simulatorVisualSlotWrap');
+  const flowShell = document.querySelector('.flowShell');
+  if (!economyGrid || !flowShell) return;
+
+  if (visualWrap && !visualWrap.querySelector('.simulatorWhatsappCard--desktop')) {
+    visualWrap.appendChild(createSimulatorWhatsappCard('desktop'));
+  }
+
+  if (!economyGrid.querySelector('.simulatorWhatsappCard--mobile')) {
+    flowShell.insertAdjacentElement('beforebegin', createSimulatorWhatsappCard('mobile'));
   }
 }
 
@@ -108,7 +124,7 @@ function markWhatsappDestinations() {
 
 function applyCompactChatbot() {
   const promptText = document.querySelector('.chatbotPromptBubble > span');
-  if (promptText && normalize(promptText.textContent) !== 'Oi! Quer falar com a nossa equipe?') {
+  if (promptText) {
     promptText.innerHTML = '<strong>Oi!</strong> Quer falar com a nossa equipe?';
   }
 
@@ -132,8 +148,8 @@ function applyCompactChatbot() {
   const options = [...chatbotWindow.querySelectorAll('.chatbotOptions button')];
   if (options.length >= 2) {
     const configs = [
-      { label: 'Quero um orçamento', source: 'chatbot_orcamento', message: WHATSAPP_MESSAGES.quote },
-      { label: 'Tenho uma dúvida', source: 'chatbot_duvida', message: WHATSAPP_MESSAGES.question },
+      ['Quero um orçamento', 'chatbot_orcamento', WHATSAPP_QUOTE_MESSAGE],
+      ['Tenho uma dúvida', 'chatbot_duvida', WHATSAPP_QUESTION_MESSAGE],
     ];
 
     options.forEach((button, index) => {
@@ -142,40 +158,38 @@ function applyCompactChatbot() {
         return;
       }
 
-      const config = configs[index];
+      const [label, source, message] = configs[index];
+      setText(button, label);
       button.classList.add('chatbotWhatsappOption');
-      setText(button, config.label);
 
       if (button.dataset.compactWhatsappBound === '1') return;
       button.dataset.compactWhatsappBound = '1';
-
       button.addEventListener(
         'click',
         (event) => {
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
-          trackWhatsappSource(config.source);
-          window.open(buildWhatsappUrl(config.message), '_blank', 'noopener,noreferrer');
+          trackWhatsappSource(source);
+          window.open(buildWhatsappUrl(message), '_blank', 'noopener,noreferrer');
         },
         true
       );
     });
   }
 
-  const privacy = chatbotWindow.querySelector('.chatbotPrivacy');
-  setText(privacy, 'Atendimento rápido pelo WhatsApp.');
+  setText(chatbotWindow.querySelector('.chatbotPrivacy'), 'Atendimento rápido pelo WhatsApp.');
 }
 
 function injectStyles() {
-  if (document.getElementById('projem-fundo-funil-adjustments')) return;
+  if (document.getElementById('projem-conversion-adjustments')) return;
 
   const style = document.createElement('style');
-  style.id = 'projem-fundo-funil-adjustments';
+  style.id = 'projem-conversion-adjustments';
   style.textContent = `
     .logoLink img.headerLogoSymbol {
-      width: 52px !important;
-      max-height: 46px !important;
+      width: 50px !important;
+      max-height: 44px !important;
     }
 
     .drawer img.drawerLogoSymbol {
@@ -183,21 +197,17 @@ function injectStyles() {
       max-height: 72px !important;
     }
 
-    .heroCopy h1 span {
-      font-weight: inherit !important;
-    }
+    .heroCopy h1 span { font-weight: inherit !important; }
 
     .heroCopy > p,
     .economyText > p,
     .invoiceIntro > p,
-    .flowPanel > p {
-      font-weight: 400 !important;
-    }
+    .flowPanel > p { font-weight: 400 !important; }
 
-    .heroWhatsappButton,
     .whatsappActionButton,
     .chatbotWhatsappOption,
-    .chatbotFinished a {
+    .chatbotFinished a,
+    .simulatorWhatsappCard a {
       background: #25d366 !important;
       background-image: none !important;
       border-color: #25d366 !important;
@@ -205,52 +215,101 @@ function injectStyles() {
       box-shadow: 0 8px 18px rgba(37, 211, 102, .22) !important;
     }
 
-    .heroWhatsappButton:hover,
     .whatsappActionButton:hover,
     .chatbotWhatsappOption:hover,
-    .chatbotFinished a:hover {
+    .chatbotFinished a:hover,
+    .simulatorWhatsappCard a:hover {
       background: #1fb85a !important;
       border-color: #1fb85a !important;
     }
 
     .topbar a.whatsappDestination,
-    .footer a.whatsappDestination {
-      color: #25d366 !important;
+    .footer a.whatsappDestination { color: #25d366 !important; }
+
+    .simulatorVisualSlotWrap {
+      flex-direction: column !important;
+      gap: 16px !important;
     }
+
+    .simulatorWhatsappCard {
+      width: 100%;
+      border: 1px solid #e7e7e7;
+      border-radius: 12px;
+      padding: 16px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(0,0,0,.05);
+    }
+
+    .simulatorWhatsappEyebrow {
+      display: block;
+      margin-bottom: 7px;
+      color: #148447;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+
+    .simulatorWhatsappCard h3 {
+      margin: 0;
+      color: #171717;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .simulatorWhatsappCard p {
+      margin: 8px 0 13px;
+      color: #666;
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 400;
+    }
+
+    .simulatorWhatsappCard a {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 7px;
+      padding: 0 12px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .simulatorWhatsappCard--mobile { display: none; }
 
     .chatbotWindow.chatbotCompact {
       width: 330px !important;
-      height: 330px !important;
+      height: 320px !important;
       min-height: 0 !important;
-      max-height: calc(100vh - 112px) !important;
+      max-height: calc(100vh - 110px) !important;
     }
 
     .chatbotWindow.chatbotCompact .chatbotHeader {
-      min-height: 64px !important;
+      min-height: 62px !important;
       padding: 10px 12px !important;
     }
 
     .chatbotWindow.chatbotCompact .chatbotHeaderAvatar {
-      width: 40px !important;
-      height: 40px !important;
+      width: 38px !important;
+      height: 38px !important;
     }
 
     .chatbotWindow.chatbotCompact .chatbotMessages {
       flex: 0 0 auto !important;
-      min-height: 92px !important;
-      max-height: 112px !important;
-      padding: 14px 12px !important;
+      min-height: 88px !important;
+      max-height: 105px !important;
+      padding: 13px 12px !important;
       overflow: hidden !important;
     }
 
     .chatbotWindow.chatbotCompact .chatbotComposer {
       flex: 1 1 auto !important;
-      padding: 12px !important;
+      padding: 11px 12px !important;
     }
 
-    .chatbotCompactHidden {
-      display: none !important;
-    }
+    .chatbotCompactHidden { display: none !important; }
 
     .chatbotWindow.chatbotCompact .chatbotOptions {
       grid-template-columns: 1fr !important;
@@ -258,49 +317,44 @@ function injectStyles() {
     }
 
     .chatbotWindow.chatbotCompact .chatbotOptions button {
-      min-height: 44px !important;
+      min-height: 43px !important;
       text-align: center !important;
-      justify-content: center !important;
       font-size: 12px !important;
     }
 
-    .chatbotWindow.chatbotCompact .chatbotPrivacy {
-      margin-top: 10px !important;
-    }
+    .floatingWhatsappButton { background: #25d366 !important; }
+    .floatingWhatsappButton.chatOpen { background: #141414 !important; }
 
-    .floatingWhatsappButton {
-      background: #25d366 !important;
-    }
-
-    .floatingWhatsappButton.chatOpen {
-      background: #141414 !important;
+    @media (max-width: 1120px) {
+      .simulatorWhatsappCard--desktop { display: none !important; }
+      .simulatorWhatsappCard--mobile {
+        display: block !important;
+        max-width: 520px;
+        margin: 0 auto;
+      }
     }
 
     @media (max-width: 760px) {
       .logoLink img.headerLogoSymbol {
-        width: 44px !important;
-        max-height: 40px !important;
+        width: 42px !important;
+        max-height: 38px !important;
       }
 
-      .header {
-        height: 64px !important;
-      }
+      .header { height: 62px !important; }
 
       .topCta,
       .mobileMenuButton {
         width: 40px !important;
         height: 40px !important;
         min-height: 40px !important;
-        flex-basis: 40px !important;
+        flex: 0 0 40px !important;
       }
 
-      .hero {
-        min-height: 455px !important;
-      }
+      .hero { min-height: 450px !important; }
 
       .heroContent {
-        min-height: 455px !important;
-        padding: 24px 20px 30px !important;
+        min-height: 450px !important;
+        padding: 22px 20px 28px !important;
       }
 
       .heroCopy h1 {
@@ -311,7 +365,7 @@ function injectStyles() {
 
       .heroCopy p {
         max-width: 320px !important;
-        margin-top: 15px !important;
+        margin-top: 14px !important;
         font-size: 13.5px !important;
         line-height: 1.5 !important;
       }
@@ -319,7 +373,7 @@ function injectStyles() {
       .heroButtons {
         max-width: 320px !important;
         gap: 9px !important;
-        margin-top: 20px !important;
+        margin-top: 19px !important;
       }
 
       .heroButtons .primaryButton,
@@ -330,8 +384,17 @@ function injectStyles() {
         font-size: 13px !important;
       }
 
-      .economySection {
-        padding-top: 38px !important;
+      .economySection { padding-top: 36px !important; }
+
+      .economyGrid {
+        gap: 18px !important;
+      }
+
+      .simulatorWhatsappCard--mobile {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 14px !important;
       }
 
       .flowShell {
@@ -340,38 +403,31 @@ function injectStyles() {
       }
 
       .simulatorPanel,
-      .invoicePanel {
-        padding: 16px !important;
-      }
+      .invoicePanel { padding: 16px !important; }
 
       .modeTabs button {
         min-height: 46px !important;
         font-size: 12px !important;
       }
 
-      .choiceGrid button {
-        min-height: 70px !important;
-      }
-
-      .invoiceUploadBox {
-        padding: 13px !important;
-      }
+      .choiceGrid button { min-height: 68px !important; }
+      .invoiceUploadBox { padding: 13px !important; }
 
       .chatbotPromptBubble {
-        width: min(250px, calc(100vw - 82px)) !important;
-        min-height: 62px !important;
-        grid-template-columns: 40px 1fr !important;
+        width: min(245px, calc(100vw - 82px)) !important;
+        min-height: 60px !important;
+        grid-template-columns: 38px 1fr !important;
         font-size: 12px !important;
       }
 
       .chatbotPromptAvatar {
-        width: 40px !important;
-        height: 40px !important;
+        width: 38px !important;
+        height: 38px !important;
       }
 
       .chatbotWindow.chatbotCompact {
         width: calc(100vw - 20px) !important;
-        height: 300px !important;
+        height: 292px !important;
         max-height: calc(100dvh - 82px) !important;
         border-radius: 16px !important;
       }
@@ -388,25 +444,11 @@ function injectStyles() {
     }
 
     @media (max-width: 390px) {
-      .logoLink img.headerLogoSymbol {
-        width: 42px !important;
-      }
-
-      .heroCopy h1 {
-        font-size: 27px !important;
-      }
-
-      .heroCopy p {
-        font-size: 13px !important;
-      }
-
-      .stepLine {
-        gap: 5px !important;
-      }
-
-      .stepLine small {
-        font-size: 9px !important;
-      }
+      .logoLink img.headerLogoSymbol { width: 40px !important; }
+      .heroCopy h1 { font-size: 27px !important; }
+      .heroCopy p { font-size: 13px !important; }
+      .stepLine { gap: 5px !important; }
+      .stepLine small { font-size: 9px !important; }
     }
   `;
 
@@ -415,7 +457,8 @@ function injectStyles() {
 
 function applyAdjustments() {
   injectStyles();
-  applyHero();
+  applyHeroChanges();
+  ensureSimulatorWhatsappCtas();
   markWhatsappDestinations();
   applyCompactChatbot();
 }
@@ -432,15 +475,11 @@ function scheduleApply() {
 
 function start() {
   scheduleApply();
-
   const root = document.getElementById('root');
   if (!root) return;
 
   const observer = new MutationObserver(scheduleApply);
-  observer.observe(root, {
-    childList: true,
-    subtree: true,
-  });
+  observer.observe(root, { childList: true, subtree: true });
 }
 
 if (document.readyState === 'loading') {
