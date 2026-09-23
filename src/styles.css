@@ -3213,3 +3213,46 @@ main {
     height:calc(100dvh - 82px);
   }
 }
+
+
+/* Simulator v2: seven qualification steps, compact and mobile-safe */
+.stepLine.compactStepper{
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
+}
+.stepLine.compactStepper small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:100%;
+}
+@media (max-width:760px){
+  .stepLine.compactStepper{
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:4px;
+  }
+  .stepLine.compactStepper div{
+    gap:5px;
+    min-width:0;
+  }
+  .stepLine.compactStepper span{
+    width:25px;
+    height:25px;
+    font-size:10px;
+  }
+  .stepLine.compactStepper small{
+    font-size:9px;
+    max-width:52px;
+  }
+  .flowPanel h3{
+    font-size:20px;
+  }
+}
+@media (max-width:390px){
+  .stepLine.compactStepper{
+    gap:2px;
+  }
+  .stepLine.compactStepper small{
+    font-size:8px;
+    max-width:45px;
+  }
+}

@@ -174,15 +174,21 @@ const structureTypes = [
 
 const cityOptions = [
   "Santa Rosa",
-  "Giruá",
-  "Três de Maio",
-  "Horizontina",
-  "Santo Cristo",
   "Santo Ângelo",
   "Ijuí",
-  "Cerro Largo",
-  "Cruz Alta",
-  "São Luiz Gonzaga",
+  "Horizontina",
+  "Giruá",
+  "Santo Cristo",
+  "Cândido Godói",
+  "Chiapetta",
+  "Três de Maio",
+];
+
+const installationIntents = [
+  { id: "0_3_meses", label: "Até 3 meses", helper: "Quero instalar em breve" },
+  { id: "3_6_meses", label: "De 3 a 6 meses", helper: "Estou me planejando" },
+  { id: "6_12_meses", label: "De 6 a 12 meses", helper: "Ainda tenho algum prazo" },
+  { id: "sem_prazo", label: "Ainda pesquisando", helper: "Quero entender melhor primeiro" },
 ];
 
 const serviceItems = [
@@ -389,7 +395,7 @@ function buildBasePayload(originForm) {
     origem: originForm,
     evento: PRIMARY_LEAD_EVENT,
     evento_origem: "site_projem_solar",
-    fonte_site: "fastidious-dolphin-5916a0.netlify.app",
+    fonte_site: window.location.hostname || "sitesolar.projem.com.br",
     timestamp: now.toISOString(),
     data: toSheetDate(now),
     pagina_url: window.location.href,
@@ -411,11 +417,13 @@ function buildBasePayload(originForm) {
     fbclid: attribution.fbclid || "",
   };
 }
-function getCommercialPriority({ billValue, hasInvoice }) {
-  if (hasInvoice && billValue >= 850) return "Alta";
-  if (hasInvoice) return "Média Alta";
-  if (billValue >= 1000) return "Alta";
-  if (billValue >= 650) return "Média";
+function getCommercialPriority({ billValue = 0, installationIntent = "sem_prazo", hasInvoice = false }) {
+  const nearTerm = installationIntent === "0_3_meses";
+  const midTerm = installationIntent === "3_6_meses";
+  if (billValue >= 850 && nearTerm) return "Alta";
+  if (billValue >= 500 && (nearTerm || midTerm)) return "Média Alta";
+  if (billValue >= 500) return "Média";
+  if (hasInvoice && billValue >= 400) return "Média";
   return "Baixa";
 }
 
@@ -450,26 +458,35 @@ function normalizeLeadPayload(payload = {}) {
 
 function buildTrackingParams(payload = {}) {
   return {
-    lead_id: payload.lead_id,
-    event_id: payload.event_id,
-    origem_formulario: payload.origem_formulario,
-    origem: payload.origem,
-    valor_conta: payload.valor_conta,
-    conta: payload.conta,
-    tipo_imovel: payload.tipo_imovel,
-    cidade: payload.cidade,
-    cidade_digitada: payload.cidade_digitada,
-    fatura_enviada: payload.fatura_enviada,
-    nivel_intencao: payload.nivel_intencao,
-    prioridade_comercial: payload.prioridade_comercial,
-    utm_source: payload.utm_source,
-    utm_medium: payload.utm_medium,
-    utm_campaign: payload.utm_campaign,
-    utm_content: payload.utm_content,
-    utm_term: payload.utm_term,
-    gclid: payload.gclid,
-    gbraid: payload.gbraid,
-    wbraid: payload.wbraid,
+    lead_id: payload.lead_id || "",
+    event_id: payload.event_id || "",
+    session_id: payload.session_id || "",
+    client_id: payload.client_id || "",
+    origem_formulario: payload.origem_formulario || "",
+    origem: payload.origem || "",
+    origem_cta: payload.origem_cta || "",
+    valor_conta: payload.valor_conta ?? "",
+    conta: payload.conta ?? "",
+    tipo_imovel: payload.tipo_imovel || "",
+    tipo_unidade: payload.tipo_unidade || "",
+    tipo_telhado: payload.tipo_telhado || "",
+    cidade: payload.cidade || "",
+    cidade_digitada: payload.cidade_digitada || "",
+    prazo_instalacao: payload.prazo_instalacao || "",
+    fatura_enviada: payload.fatura_enviada ?? "",
+    nivel_intencao: payload.nivel_intencao || "",
+    prioridade_comercial: payload.prioridade_comercial || "",
+    lead_priority: payload.lead_priority || "",
+    utm_source: payload.utm_source || "",
+    utm_medium: payload.utm_medium || "",
+    utm_campaign: payload.utm_campaign || "",
+    utm_content: payload.utm_content || "",
+    utm_term: payload.utm_term || "",
+    utm_id: payload.utm_id || "",
+    gclid: payload.gclid || "",
+    gbraid: payload.gbraid || "",
+    wbraid: payload.wbraid || "",
+    fbclid: payload.fbclid || "",
   };
 }
 
@@ -477,15 +494,68 @@ function trackEvent(name, params = {}) {
   const payload = {
     event_category: "solar_lead",
     page_path: window.location.pathname,
+    source_site: window.location.hostname || "sitesolar.projem.com.br",
+    site_version: "qualified-funnel-v2",
     ...params,
   };
-
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: name, ...payload });
+  if (typeof window.gtag === "function") window.gtag("event", name, payload);
+}
 
-  if (typeof window.gtag === "function") {
-    window.gtag("event", name, payload);
+function markSimulatorStarted(entryPoint = "simulator") {
+  try {
+    if (sessionStorage.getItem("projem_simulator_started") === "1") return;
+    sessionStorage.setItem("projem_simulator_started", "1");
+  } catch {}
+  trackEvent("simulator_start", { entry_point: entryPoint, simulator_version: "v2" });
+}
+
+function trackSimulatorStepView(step, stepName) {
+  trackEvent("simulator_step_view", { simulator_version: "v2", step_number: step, step_name: stepName });
+}
+
+function trackSimulatorStepComplete(step, stepName, value = {}) {
+  trackEvent("simulator_step_complete", { simulator_version: "v2", step_number: step, step_name: stepName, ...value });
+}
+
+function trackSimulatorStepError(step, stepName, errorType) {
+  trackEvent("simulator_step_error", { simulator_version: "v2", step_number: step, step_name: stepName, error_type: errorType });
+}
+
+function setupBehaviorTracking() {
+  const seenSections = new Set();
+  const sections = ["inicio", "simulador", "servicos", "vantagens", "sobre", "analises", "contato"];
+  let observer;
+  if ("IntersectionObserver" in window) {
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) return;
+        const id = entry.target.id;
+        if (!id || seenSections.has(id)) return;
+        seenSections.add(id);
+        trackEvent("section_view", { section_name: id });
+      });
+    }, { threshold: [0.5] });
+    sections.forEach((id) => { const element = document.getElementById(id); if (element) observer.observe(element); });
   }
+  const milestones = new Set();
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(() => {
+      ticking = false;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return;
+      const percent = Math.round((window.scrollY / max) * 100);
+      [50, 75, 90].forEach((milestone) => {
+        if (percent >= milestone && !milestones.has(milestone)) { milestones.add(milestone); trackEvent("scroll_milestone", { percent: milestone }); }
+      });
+    });
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  return () => { observer?.disconnect(); window.removeEventListener("scroll", onScroll); };
 }
 function initGa() {
   if (!GA_MEASUREMENT_ID || typeof document === "undefined") return;
@@ -559,16 +629,15 @@ async function registerLeadSubmission(payload, file) {
   const makeResponse = await sendLeadToMake(normalizedPayload, file);
 
   if (makeResponse.ok) {
-    trackEvent("make_webhook_success", {
-      origem_formulario: normalizedPayload.origem_formulario,
-      lead_id: normalizedPayload.lead_id,
-      event_id: normalizedPayload.event_id,
+    trackEvent("lead_delivery_success", {
+      ...buildTrackingParams(normalizedPayload),
+      delivery_system: "make",
+      isales_submission_attempted: true,
     });
   } else {
-    trackEvent("make_webhook_failed", {
-      origem_formulario: normalizedPayload.origem_formulario,
-      lead_id: normalizedPayload.lead_id,
-      event_id: normalizedPayload.event_id,
+    trackEvent("lead_delivery_failed", {
+      ...buildTrackingParams(normalizedPayload),
+      delivery_system: "make",
       reason: makeResponse.reason || makeResponse.error || makeResponse.status || "unknown",
     });
   }
@@ -782,7 +851,15 @@ function Header() {
             ))}
           </nav>
 
-          <a className="topCta" href="#simulador" aria-label="Simular economia">
+          <a
+            className="topCta"
+            href="#simulador"
+            aria-label="Simular economia"
+            onClick={() => {
+              trackEvent("cta_click", { cta_name: "simulate_economy", location: "header", destination: "simulator" });
+              markSimulatorStarted("header");
+            }}
+          >
             <Zap size={15} />
             <span>Simular economia</span>
           </a>
@@ -804,7 +881,11 @@ function Header() {
             </a>
           ))}
 
-          <a className="drawerCta" href="#simulador" onClick={() => setOpen(false)}>
+          <a className="drawerCta" href="#simulador" onClick={() => {
+            setOpen(false);
+            trackEvent("cta_click", { cta_name: "simulate_economy", location: "mobile_menu", destination: "simulator" });
+            markSimulatorStarted("mobile_menu");
+          }}>
             <Zap size={16} />
             Simular economia
           </a>
@@ -815,74 +896,42 @@ function Header() {
 }
 
 function Hero() {
+  function handleSimulatorClick() {
+    trackEvent("cta_click", { cta_name: "simulate_economy", location: "hero", destination: "simulator" });
+    markSimulatorStarted("hero");
+  }
+
+  function handleWhatsappClick() {
+    trackEvent("cta_click", { cta_name: "whatsapp", location: "hero", destination: "whatsapp" });
+    trackEvent("whatsapp_click", { origem_formulario: "hero", origem_cta: "hero_whatsapp" });
+  }
+
   return (
     <section id="inicio" className="hero">
       <div className="heroBackground">
-        {imageSlots.heroCouple ? (
-          <img src={imageSlots.heroCouple} alt="Casal em frente a uma residência com energia solar" />
-        ) : (
-          <div className="heroImagePlaceholder" aria-label="Imagem de fundo do casal pendente" />
-        )}
+        {imageSlots.heroCouple ? <img src={imageSlots.heroCouple} alt="Casal em frente a uma residência com energia solar" /> : <div className="heroImagePlaceholder" aria-label="Imagem de fundo do casal pendente" />}
       </div>
-
       <div className="heroOverlay" />
-
       <div className="pageWidth heroContent">
         <div className="heroCopy">
-          <h1>
-            Antes de pedir orçamento, entenda sua <span>conta de luz.</span>
-          </h1>
-          <p>
-            Simule sua economia ou envie sua fatura para uma análise técnica gratuita e descubra o melhor caminho para pagar a luz pelo preço certo.
-          </p>
-
+          <h1>Energia solar em Santa Rosa <span>e região.</span></h1>
+          <p>Projeto e acompanhamento técnico realizados por engenheiro, instalação própria e pós-venda preparado para acompanhar você depois da instalação.</p>
           <div className="heroButtons">
-            <a href="#simulador" className="primaryButton">
-              <Zap size={16} />
-              Simular economia
-            </a>
-            <a
-  href="#simulador"
-  className="outlineButton dark"
-  onClick={() => {
-    window.dispatchEvent(
-      new CustomEvent("projem:setSimulatorMode", {
-        detail: "invoice",
-      })
-    );
-
-    trackEvent("hero_invoice_click", {
-      origem_formulario: "hero",
-      origem_cta: "enviar_minha_fatura",
-    });
-  }}
->
-  <FileText size={16} />
-  Enviar minha fatura
-</a>
+            <a href="#simulador" className="primaryButton" onClick={handleSimulatorClick}><Zap size={16} />Simular minha economia</a>
+            <a href={buildWhatsappUrl(whatsappDefaultMessage)} className="outlineButton dark" target="_blank" rel="noopener noreferrer" onClick={handleWhatsappClick}><MessageCircle size={16} />Falar pelo WhatsApp</a>
           </div>
-        </div>
-
-        <div className="heroMockupArea">
-          <ImageSlot
-            src={imageSlots.heroFloatingMockup}
-            title="Imagem complementar"
-            brief="Slot reservado para o mockup/print final. Nenhum telefone é criado em JSX."
-            className="heroMockupSlot"
-          />
         </div>
       </div>
     </section>
   );
 }
-
 function ProofBar() {
   return (
     <section className="proofBar">
       <div className="pageWidth proofGrid">
         <article>
           <Zap size={27} />
-          <p>Análise técnica<br />da sua fatura</p>
+          <p>Análise técnica<br />do seu cenário</p>
         </article>
         <article>
           <MapPinned size={27} />
@@ -905,6 +954,7 @@ function SimulateFlow() {
   const [city, setCity] = useState("");
   const [geo, setGeo] = useState(null);
   const [locationStatus, setLocationStatus] = useState({ type: "", text: "" });
+  const [installationIntent, setInstallationIntent] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
@@ -919,35 +969,86 @@ function SimulateFlow() {
   );
 
   const stepLabels = [
-    { label: "Conta", activeUntil: 1 },
-    { label: "Perfil", activeUntil: 4 },
-    { label: "Dados", activeUntil: 5 },
-    { label: "Resultado", activeUntil: 6 },
+    { label: "Conta" },
+    { label: "Perfil" },
+    { label: "Local" },
+    { label: "Prazo" },
+    { label: "Contato" },
+    { label: "Resultado" },
   ];
+
+  const stepNames = {
+    1: "bill_value",
+    2: "property_type",
+    3: "roof_type",
+    4: "city",
+    5: "installation_intent",
+    6: "name",
+    7: "whatsapp",
+  };
+
+  useEffect(() => {
+    if (step <= 7) {
+      trackSimulatorStepView(step, stepNames[step]);
+      if (step === 6) {
+        trackEvent("lead_form_start", {
+          simulator_version: "v2",
+          form_type: "simulator_lead",
+          form_step: 6,
+        });
+      }
+    }
+  }, [step]);
 
   function getVisualStep() {
     if (step <= 1) return 1;
-    if (step <= 4) return 2;
-    if (step === 5) return 3;
-    return 4;
+    if (step <= 3) return 2;
+    if (step === 4) return 3;
+    if (step === 5) return 4;
+    if (step <= 7) return 5;
+    return 6;
   }
 
   function next() {
     setError("");
-    trackEvent("simulator_step_next", { step, origem_formulario: "simulador_solar" });
+    markSimulatorStarted("simulator_interaction");
 
     if (step === 1 && billValue <= 0) {
       setError("Informe o valor médio da conta de luz.");
+      trackSimulatorStepError(step, stepNames[step], "missing_bill_value");
       return;
     }
 
     if (step === 4 && !city.trim()) {
       setError("Informe sua cidade ou use a localização automática.");
+      trackSimulatorStepError(step, stepNames[step], "missing_city");
       return;
     }
 
-    if (step < 5) {
+    if (step === 5 && !installationIntent) {
+      setError("Informe quando pretende instalar.");
+      trackSimulatorStepError(step, stepNames[step], "missing_installation_intent");
+      return;
+    }
+
+    if (step === 6 && !name.trim()) {
+      setError("Informe seu nome.");
+      trackSimulatorStepError(step, stepNames[step], "missing_name");
+      return;
+    }
+
+    if (step <= 5) {
+      trackSimulatorStepComplete(step, stepNames[step], {
+        ...(step === 1 ? { bill_range: billValue >= 1000 ? "1000_plus" : billValue >= 500 ? "500_999" : "under_500" } : {}),
+        ...(step === 2 ? { property_type: unitType } : {}),
+        ...(step === 3 ? { roof_type: structureType } : {}),
+        ...(step === 4 ? { city: city.trim() } : {}),
+        ...(step === 5 ? { installation_intent: installationIntent } : {}),
+      });
       setStep((current) => current + 1);
+    } else if (step === 6) {
+      trackSimulatorStepComplete(step, stepNames[step], { name_provided: "yes" });
+      setStep(7);
     }
   }
 
@@ -984,9 +1085,11 @@ function SimulateFlow() {
       fatura_nome_arquivo: "",
       status_lead: "Novo",
       nivel_intencao: billValue >= 850 ? "Alta" : "Média",
-      prioridade_comercial: getCommercialPriority({ billValue, hasInvoice: false }),
+      prazo_instalacao: installationIntent,
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }),
+      lead_priority: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }).toLowerCase().replace(/\s+/g, "_"),
       consentimento_contato: true,
-      etapa_finalizada: "dados_antes_resultado",
+      etapa_finalizada: "dados_completos",
       origem_cta: "revelar_estimativa",
       ja_fez_orcamento: "Não informado",
     });
@@ -1009,10 +1112,10 @@ function SimulateFlow() {
 
     setIsSubmitting(true);
     setIsCalculating(true);
-    setStep(6);
+    setStep(8);
     setLeadPayload(payload);
 
-    trackEvent("lead_form_completed_before_result", buildTrackingParams(payload));
+    trackSimulatorStepComplete(7, "whatsapp", { whatsapp_provided: "yes" });
 
     const { payload: registeredPayload } = await registerLeadSubmission(payload);
     setLeadPayload(registeredPayload);
@@ -1020,12 +1123,10 @@ function SimulateFlow() {
     window.setTimeout(() => {
       setIsCalculating(false);
       setIsSubmitting(false);
-      trackEvent("simulation_result_view", {
-        origem_formulario: registeredPayload.origem_formulario,
-        lead_id: registeredPayload.lead_id,
-        event_id: registeredPayload.event_id,
-        valor_conta: registeredPayload.valor_conta,
-        estimativa_economia_mensal: registeredPayload.estimativa_economia_mensal,
+      trackEvent("simulator_result_view", {
+        ...buildTrackingParams(registeredPayload),
+        simulator_version: "v2",
+        estimated_monthly_saving: registeredPayload.estimativa_economia_mensal,
       });
     }, 1600);
   }
@@ -1041,6 +1142,7 @@ function SimulateFlow() {
       `Tipo de unidade: ${unitType}`,
       `Estrutura/telhado: ${structureType}`,
       `Cidade: ${city}`,
+      `Prazo para instalação: ${installationIntent}`,
       `Economia estimada: ${formatMoney(result.monthlySavings)} por mês`,
       `Economia anual estimada: ${formatMoney(result.annualSavings)}`,
     ].filter(Boolean).join("\n");
@@ -1124,7 +1226,7 @@ function SimulateFlow() {
       {step === 3 && (
         <div className="flowPanel">
           <h3>Qual é a estrutura do telhado?</h3>
-          <p>Se não souber, escolha a opção mais próxima. A fatura refina a análise depois.</p>
+          <p>Se não souber, escolha a opção mais próxima. A análise técnica refina o dimensionamento depois.</p>
 
           <div className="choiceGrid">
             {structureTypes.map((item) => (
@@ -1158,39 +1260,47 @@ function SimulateFlow() {
       )}
 
       {step === 5 && (
-        <div className="flowPanel resultGate">
-          <h3>Para liberar sua estimativa</h3>
-          <p>Preencha seus dados. Assim a PROJEM consegue salvar o lead e continuar a análise se você quiser avançar.</p>
-
-          <div className="leadForm">
-            <label>
-              Nome
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" />
-            </label>
-
-            <label>
-              WhatsApp
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(55) 9968-6302" />
-            </label>
+        <div className="flowPanel">
+          <h3>Quando você pretende instalar?</h3>
+          <p>Essa informação ajuda a equipe a priorizar o atendimento.</p>
+          <div className="choiceGrid">
+            {installationIntents.map((item) => (
+              <button key={item.id} type="button" className={installationIntent === item.id ? "selected" : ""} onClick={() => setInstallationIntent(item.id)}>
+                <strong>{item.label}</strong>
+                <span>{item.helper}</span>
+              </button>
+            ))}
           </div>
-
-          <button
-  type="button"
-  className="primaryButton full revealButton"
-  onClick={() => {
-    if (window.gtag_report_conversion) {
-      window.gtag_report_conversion();
-    }
-    revealEstimate();
-  }}
-  disabled={isSubmitting}
->
-  {isSubmitting ? "Enviando..." : "Ver minha estimativa"}
-</button>
         </div>
       )}
 
-      {step === 6 && isCalculating && (
+      {step === 6 && (
+        <div className="flowPanel resultGate">
+          <h3>Para liberar sua estimativa</h3>
+          <p>Informe seu nome para continuar.</p>
+          <div className="leadForm">
+            <label>
+              Nome
+              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" autoComplete="name" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {step === 7 && (
+        <div className="flowPanel resultGate">
+          <h3>Agora, seu WhatsApp</h3>
+          <p>Precisamos dele para registrar o lead e permitir o contato da SDR.</p>
+          <div className="leadForm">
+            <label>
+              WhatsApp
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(55) 9968-6302" inputMode="tel" autoComplete="tel" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {step === 8 && isCalculating && (
         <div className="loadingPanel">
           <div className="loadingRing">
             <Zap size={28} />
@@ -1205,11 +1315,11 @@ function SimulateFlow() {
         </div>
       )}
 
-      {step === 6 && !isCalculating && (
+      {step === 8 && !isCalculating && (
         <div className="flowPanel resultFlow">
           <div>
             <h3>Sua estimativa inicial</h3>
-            <p>Esse valor é uma projeção. A análise da fatura deixa o cenário mais preciso.</p>
+            <p>Esse valor é uma projeção. A análise técnica deixa o cenário mais preciso.</p>
           </div>
 
           <div className="resultCards">
@@ -1239,15 +1349,15 @@ function SimulateFlow() {
       {error && <div className="formError">{error}</div>}
 
       <div className="flowActions">
-        {step > 1 && step < 6 && (
+        {step > 1 && step < 8 && (
           <button type="button" className="secondaryButton" onClick={back}>
             Voltar
           </button>
         )}
 
-        {step < 5 && (
-          <button type="button" className="primaryButton" onClick={next}>
-            Continuar
+        {step < 8 && (
+          <button type="button" className="primaryButton" onClick={step === 7 ? revealEstimate : next} disabled={isSubmitting}>
+            {step === 7 ? (isSubmitting ? "Enviando..." : "Ver minha estimativa") : "Continuar"}
             <ArrowRight size={16} />
           </button>
         )}
@@ -1257,298 +1367,30 @@ function SimulateFlow() {
 }
 
 
-function InvoiceFlow() {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [geo, setGeo] = useState(null);
-  const [unitType, setUnitType] = useState("Residencial");
-  const [billReference, setBillReference] = useState("");
-  const [file, setFile] = useState(null);
-  const [locationStatus, setLocationStatus] = useState({ type: "", text: "" });
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function submitInvoice() {
-    const billValue = parseCurrency(billReference);
-
-    setError("");
-
-    if (!name.trim()) {
-      setError("Informe seu nome.");
-      return;
-    }
-
-    if (!phoneIsValid(phone)) {
-      setError("Informe um WhatsApp válido.");
-      return;
-    }
-
-    if (!city.trim()) {
-      setError("Informe a cidade ou use a localização automática.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const phoneNumber = cleanNumber(phone);
-    const payload = normalizeLeadPayload({
-      ...buildBasePayload("envio_fatura"),
-      evento_secundario: "submit_invoice",
-      nome: name.trim(),
-      telefone: phoneNumber,
-      whatsapp: phoneNumber,
-      cidade: city.trim(),
-      cidade_digitada: city.trim(),
-      cidade_origem: geo ? "localizacao_automatica" : "manual",
-      latitude: geo?.latitude || "",
-      longitude: geo?.longitude || "",
-      tipo_imovel: unitType,
-      tipo_unidade: unitType,
-      tipo_telhado: "",
-      valor_conta: billValue || "",
-      conta: billValue || "",
-      valor_conta_formatado: billValue ? formatMoney(billValue) : "",
-      estimativa_economia_mensal: "",
-      economia_anual_estimada: "",
-      nova_conta_estimada: "",
-      percentual_economia: "",
-      fatura_enviada: Boolean(file),
-      fatura_nome_arquivo: file?.name || "",
-      fatura_tamanho_bytes: file?.size || "",
-      fatura_tipo: file?.type || "",
-      status_lead: "Novo",
-      nivel_intencao: "Alta",
-      prioridade_comercial: getCommercialPriority({
-        billValue: billValue || 0,
-        hasInvoice: true,
-      }),
-      consentimento_contato: true,
-      etapa_finalizada: "formulario_fatura",
-      origem_cta: "envio_fatura_whatsapp",
-      ja_fez_orcamento: "Não informado",
-    });
-
-    const whatsappMessage = [
-      "Olá, gostaria de enviar minha fatura para uma análise técnica da PROJEM.",
-      `Nome: ${name.trim()}`,
-      `WhatsApp: ${phone}`,
-      `Cidade: ${city}`,
-      `Tipo de unidade: ${unitType}`,
-      billReference ? `Valor aproximado da conta: ${billReference}` : null,
-      file ? `Arquivo selecionado no site: ${file.name}` : "Vou anexar a fatura por aqui.",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    await submitLead({
-      payload,
-      file,
-      whatsappMessage,
-      eventName: "submit_invoice",
-    });
-
-    setIsSubmitting(false);
-  }
-
-  return (
-    <div className="invoicePanel" id="fatura">
-      <div className="invoiceIntro">
-        <h3>Envie sua fatura para análise</h3>
-        <p>
-          Preencha os dados e vá para o WhatsApp. O arquivo da fatura é opcional;
-          você também pode anexar direto na conversa.
-        </p>
-      </div>
-
-      <div className="invoiceForm">
-        <label>
-          Nome
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Seu nome"
-          />
-        </label>
-
-        <label>
-          WhatsApp
-          <input
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="(55) 9968-6302"
-          />
-        </label>
-
-        <label>
-          Tipo de unidade
-          <select
-            value={unitType}
-            onChange={(event) => setUnitType(event.target.value)}
-          >
-            {unitTypes.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Valor aproximado da conta
-          <input
-            value={billReference}
-            onChange={(event) =>
-              setBillReference(currencyInput(event.target.value))
-            }
-            placeholder="Ex.: R$ 850,00"
-            inputMode="numeric"
-          />
-        </label>
-
-        <div className="invoiceLocation">
-          <LocationField
-            city={city}
-            setCity={setCity}
-            locationStatus={locationStatus}
-            setLocationStatus={setLocationStatus}
-            setGeo={setGeo}
-          />
-        </div>
-
-        <label className={`fileField invoiceUploadBox ${file ? "hasFile" : ""}`}>
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.webp"
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
-          />
-          <span className="uploadIconBox">
-            <Upload size={24} />
-          </span>
-          <span className="uploadText">
-            <strong>{file ? "Fatura anexada" : "Clique aqui para anexar sua fatura"}</strong>
-            <small>{file ? file.name : "PDF, foto ou print da conta de luz"}</small>
-          </span>
-          <span className="uploadBadge">opcional</span>
-        </label>
-      </div>
-
-      {error && <div className="formError">{error}</div>}
-
-      <button
-        type="button"
-        className="primaryButton full invoiceSubmitButton"
-        onClick={submitInvoice}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Enviando..." : "Ir para o WhatsApp"}
-      </button>
-    </div>
-  );
-}
-
 function EconomySection() {
-  const [mode, setMode] = useState("simulate");
-useEffect(() => {
-  function handleModeRequest(event) {
-    if (event.detail === "invoice") {
-      setMode("invoice");
-    }
-
-    if (event.detail === "simulate") {
-      setMode("simulate");
-    }
-
-    window.setTimeout(() => {
-      document.getElementById("simulador")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 50);
-  }
-
-  function handleHashChange() {
-    if (window.location.hash === "#fatura") {
-      handleModeRequest({ detail: "invoice" });
-    }
-
-    if (window.location.hash === "#simulador") {
-      handleModeRequest({ detail: "simulate" });
-    }
-  }
-
-  window.addEventListener("projem:setSimulatorMode", handleModeRequest);
-  window.addEventListener("hashchange", handleHashChange);
-
-  handleHashChange();
-
-  return () => {
-    window.removeEventListener("projem:setSimulatorMode", handleModeRequest);
-    window.removeEventListener("hashchange", handleHashChange);
-  };
-}, []);
-  function setModeTracked(nextMode) {
-    setMode(nextMode);
-    trackEvent("simulator_mode_change", {
-      mode: nextMode,
-      origem_formulario: nextMode === "simulate" ? "simulador_solar" : "envio_fatura",
-    });
-  }
-
   return (
     <section id="simulador" className="economySection">
       <div className="pageWidth economyGrid">
         <div className="economyText">
           <SectionLabel>Simule sua economia</SectionLabel>
           <h2>Descubra quanto você pode economizar.</h2>
-          <p>
-            Nossa simulação é rápida, gratuita e sem compromisso. Em poucos passos, você entende sua estrutura e potencial de economia.
-          </p>
-
+          <p>Em poucos passos, informe seu consumo e perfil. A estimativa só aparece depois que os dados necessários forem preenchidos.</p>
           <ul className="iconList">
             <li><BadgeCheck size={18} /> Análise clara e objetiva</li>
-            <li><BadgeCheck size={18} /> Projeções realistas</li>
-            <li><BadgeCheck size={18} /> Sem compromisso</li>
-            <li><BadgeCheck size={18} /> 100% confidencial</li>
+            <li><BadgeCheck size={18} /> Estimativa inicial de investimento</li>
+            <li><BadgeCheck size={18} /> Atendimento regional</li>
           </ul>
         </div>
-
         <div className="simulatorVisualSlotWrap">
-          <ImageSlot
-            src={imageSlots.simulatorVisual}
-            title="Imagem futura do simulador"
-            brief="Slot reservado para imagem/preview do simulador."
-            className="simulatorVisualSlot"
-          />
+          <ImageSlot src={imageSlots.simulatorVisual} title="Imagem do simulador" brief="Visual complementar do simulador." className="simulatorVisualSlot" />
         </div>
-
         <div className="flowShell">
-          <div className="modeTabs">
-            <button
-              type="button"
-              className={mode === "simulate" ? "active" : ""}
-              onClick={() => setModeTracked("simulate")}
-            >
-              Simular economia
-            </button>
-            <button
-              type="button"
-              className={mode === "invoice" ? "active" : ""}
-              onClick={() => setModeTracked("invoice")}
-            >
-              Enviar fatura
-            </button>
-          </div>
-
-          <div key={mode} className="modeContent">
-            {mode === "simulate" ? <SimulateFlow /> : <InvoiceFlow />}
-          </div>
+          <SimulateFlow />
         </div>
       </div>
     </section>
   );
 }
-
 function StepsSection() {
   return (
     <section className="stepsSection">
@@ -1727,10 +1569,12 @@ function RegionFaq() {
 
 function Footer() {
   function trackFooterSimulator() {
-    trackEvent("footer_simulator_click", {
-      origem_formulario: "footer_cta",
-      origem_cta: "footer_simular_agora",
+    trackEvent("cta_click", {
+      cta_name: "simulate_economy",
+      location: "footer",
+      destination: "simulator",
     });
+    markSimulatorStarted("footer");
   }
 
   return (
@@ -2270,9 +2114,12 @@ export default function App() {
   useEffect(() => {
     collectAttribution();
     initGa();
-    trackEvent("page_view_landing", {
-      origem_formulario: "page_view",
+    const cleanupBehavior = setupBehaviorTracking();
+    trackEvent("page_view", {
+      page_type: "landing_solar",
+      page_name: "home",
     });
+    return cleanupBehavior;
   }, []);
 
   return (
