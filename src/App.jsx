@@ -421,7 +421,10 @@ function buildBasePayload(originForm) {
     fbclid: attribution.fbclid || "",
   };
 }
-function getCommercialPriority({ billValue = 0, installationIntent = "sem_prazo", hasInvoice = false }) {
+function getCommercialPriority({ billValue = 0, installationIntent = "sem_prazo", hasInvoice = false, city = "" }) {
+  const normalizedCity = String(city).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  const servedCities = ["santa rosa","santo angelo","ijui","horizontina","girua","santo cristo","candido godoi","chiapetta","tres de maio"];
+  if (normalizedCity && !servedCities.includes(normalizedCity)) return "Baixa";
   const nearTerm = installationIntent === "0_3_meses";
   const midTerm = installationIntent === "3_6_meses";
   if (billValue >= 850 && nearTerm) return "Alta";
@@ -481,6 +484,8 @@ function buildTrackingParams(payload = {}) {
     nivel_intencao: payload.nivel_intencao || "",
     prioridade_comercial: payload.prioridade_comercial || "",
     lead_priority: payload.lead_priority || "",
+    concessionaria: payload.concessionaria || "",
+    email: payload.email || "",
     utm_source: payload.utm_source || "",
     utm_medium: payload.utm_medium || "",
     utm_campaign: payload.utm_campaign || "",
@@ -1071,7 +1076,7 @@ function SimulateFlow() {
       status_lead: "Novo",
       nivel_intencao: billValue >= 850 ? "Alta" : "Média",
       prazo_instalacao: installationIntent,
-      prioridade_comercial: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }),
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent, hasInvoice: false, city }),
       lead_priority: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }).toLowerCase().replace(/\s+/g, "_"),
       consentimento_contato: true,
       etapa_finalizada: "dados_completos",
@@ -1361,9 +1366,9 @@ function QuoteForm() {
       conta: billValue,
       valor_conta_formatado: formatMoney(billValue),
       prazo_instalacao: "Não informado",
-      prioridade_comercial: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false }),
-      lead_priority: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false }).toLowerCase().replace(/\\s+/g, "_"),
-      nivel_intencao: "Alta",
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false, city: form.city.trim() }),
+      lead_priority: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false }).toLowerCase().replace(/\s+/g, "_"),
+      nivel_intencao: billValue >= 500 ? "Alta" : "Média",
       origem_cta: "orcamento_final",
       etapa_finalizada: "formulario_orcamento",
       fatura_enviada: false,
@@ -1601,7 +1606,7 @@ function Testimonials() {
 }
 function RegionFaq() {
   return (
-    <section id="analises" className="regionFaq">
+    <section id="regiao" className="regionFaq">
       <div className="pageWidth regionFaqGrid">
         <div className="regionBox">
           <SectionLabel>Atendimento regional</SectionLabel>
