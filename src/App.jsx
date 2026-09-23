@@ -968,23 +968,13 @@ function SimulateFlow() {
     [billValue, unitType, structureType]
   );
 
-  const stepLabels = [
-    { label: "Conta" },
-    { label: "Perfil" },
-    { label: "Local" },
-    { label: "Prazo" },
-    { label: "Contato" },
-    { label: "Resultado" },
-  ];
-
-  const stepNames = {
+   const stepNames = {
     1: "bill_value",
     2: "property_type",
     3: "roof_type",
     4: "city",
     5: "installation_intent",
-    6: "name",
-    7: "whatsapp",
+    6: "contact",
   };
 
   useEffect(() => {
@@ -1000,16 +990,7 @@ function SimulateFlow() {
     }
   }, [step]);
 
-  function getVisualStep() {
-    if (step <= 1) return 1;
-    if (step <= 3) return 2;
-    if (step === 4) return 3;
-    if (step === 5) return 4;
-    if (step <= 7) return 5;
-    return 6;
-  }
-
-  function next() {
+   function next() {
     setError("");
     markSimulatorStarted("simulator_interaction");
 
@@ -1031,9 +1012,9 @@ function SimulateFlow() {
       return;
     }
 
-    if (step === 6 && !name.trim()) {
-      setError("Informe seu nome.");
-      trackSimulatorStepError(step, stepNames[step], "missing_name");
+    if (step === 6 && (!name.trim() || !phoneIsValid(phone))) {
+      setError(!name.trim() ? "Informe seu nome." : "Informe um WhatsApp válido.");
+      trackSimulatorStepError(step, stepNames[step], !name.trim() ? "missing_name" : "invalid_phone");
       return;
     }
 
@@ -1047,8 +1028,8 @@ function SimulateFlow() {
       });
       setStep((current) => current + 1);
     } else if (step === 6) {
-      trackSimulatorStepComplete(step, stepNames[step], { name_provided: "yes" });
-      setStep(7);
+      trackSimulatorStepComplete(step, stepNames[step], { name_provided: "yes", whatsapp_provided: "yes" });
+      revealEstimate();
     }
   }
 
@@ -1112,10 +1093,10 @@ function SimulateFlow() {
 
     setIsSubmitting(true);
     setIsCalculating(true);
-    setStep(8);
+    setStep(7);
     setLeadPayload(payload);
 
-    trackSimulatorStepComplete(7, "whatsapp", { whatsapp_provided: "yes" });
+    trackSimulatorStepComplete(6, "contact", { name_provided: "yes", whatsapp_provided: "yes" });
 
     const { payload: registeredPayload } = await registerLeadSubmission(payload);
     setLeadPayload(registeredPayload);
@@ -1159,22 +1140,8 @@ function SimulateFlow() {
 
   return (
     <div className="simulatorPanel">
-      <div className="stepLine compactStepper" aria-label="Etapas da simulação">
-        {stepLabels.map((item, index) => {
-          const number = index + 1;
-          const visualStep = getVisualStep();
-
-          return (
-            <div key={item.label} className={visualStep >= number ? "active" : ""}>
-              <span>{number}</span>
-              <small>{item.label}</small>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="progressBar">
-        <i style={{ width: `${(getVisualStep() / stepLabels.length) * 100}%` }} />
+      <div className="progressBar" aria-label="Progresso da simulação">
+        <i style={{ width: `${Math.min(step, 6) / 6 * 100}%` }} />
       </div>
 
       {step === 1 && (
@@ -1276,31 +1243,22 @@ function SimulateFlow() {
 
       {step === 6 && (
         <div className="flowPanel resultGate">
-          <h3>Para liberar sua estimativa</h3>
-          <p>Informe seu nome para continuar.</p>
-          <div className="leadForm">
+          <h3>Receba sua estimativa</h3>
+          <p>Informe seus dados para receber o resultado.</p>
+          <div className="leadForm contactGrid">
             <label>
               Nome
               <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" autoComplete="name" />
             </label>
-          </div>
-        </div>
-      )}
-
-      {step === 7 && (
-        <div className="flowPanel resultGate">
-          <h3>Agora, seu WhatsApp</h3>
-          <p>Precisamos dele para registrar o lead e permitir o contato da SDR.</p>
-          <div className="leadForm">
             <label>
               WhatsApp
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(55) 9968-6302" inputMode="tel" autoComplete="tel" />
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Seu WhatsApp" inputMode="tel" autoComplete="tel" />
             </label>
           </div>
         </div>
       )}
 
-      {step === 8 && isCalculating && (
+      {step === 7 && isCalculating && (
         <div className="loadingPanel">
           <div className="loadingRing">
             <Zap size={28} />
@@ -1315,7 +1273,7 @@ function SimulateFlow() {
         </div>
       )}
 
-      {step === 8 && !isCalculating && (
+      {step === 7 && !isCalculating && (
         <div className="flowPanel resultFlow">
           <div>
             <h3>Sua estimativa inicial</h3>
@@ -1349,15 +1307,15 @@ function SimulateFlow() {
       {error && <div className="formError">{error}</div>}
 
       <div className="flowActions">
-        {step > 1 && step < 8 && (
+        {step > 1 && step < 7 && (
           <button type="button" className="secondaryButton" onClick={back}>
             Voltar
           </button>
         )}
 
-        {step < 8 && (
-          <button type="button" className="primaryButton" onClick={step === 7 ? revealEstimate : next} disabled={isSubmitting}>
-            {step === 7 ? (isSubmitting ? "Enviando..." : "Ver minha estimativa") : "Continuar"}
+        {step < 7 && (
+          <button type="button" className="primaryButton" onClick={next} disabled={isSubmitting}>
+            {step === 6 ? (isSubmitting ? "Enviando..." : "Ver minha estimativa") : "Continuar"}
             <ArrowRight size={16} />
           </button>
         )}
