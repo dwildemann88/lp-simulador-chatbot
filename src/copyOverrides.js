@@ -1,5 +1,5 @@
-const HERO_TITLE = 'Receba seu orçamento de energia solar em poucos minutos.';
-const HERO_SUPPORT = 'Envie sua fatura ou faça uma simulação rápida. A PROJEM analisa o seu consumo e prepara uma proposta adequada para o seu imóvel.';
+const HERO_TITLE = 'Energia solar em Santa Rosa e região.';
+const HERO_SUPPORT = 'Projeto e acompanhamento técnico realizados por engenheiro, instalação própria e pós-venda preparado para acompanhar você depois da instalação.';
 const WHATSAPP_NUMBER = '555599686302';
 const WHATSAPP_QUOTE_MESSAGE = 'Olá! Vim pelo site da PROJEM e gostaria de receber um orçamento de energia solar. Posso enviar minha fatura para análise?';
 const WHATSAPP_QUESTION_MESSAGE = 'Olá! Vim pelo site da PROJEM e tenho uma dúvida sobre energia solar.';
@@ -85,8 +85,8 @@ function createSimulatorWhatsappCard(variant) {
   card.innerHTML = `
     <span class="simulatorWhatsappEyebrow">ATENDIMENTO DIRETO</span>
     <h3>Prefere falar com a equipe?</h3>
-    <p>Envie sua fatura direto pelo WhatsApp e avance com seu orçamento.</p>
-    <a href="${buildWhatsappUrl()}" target="_blank" rel="noopener noreferrer">
+    <p>Tire suas dúvidas e converse com a equipe comercial pelo WhatsApp.</p>
+    <a href="${buildWhatsappUrl(WHATSAPP_QUOTE_MESSAGE)}" target="_blank" rel="noopener noreferrer">
       Falar pelo WhatsApp
     </a>
   `;
@@ -117,7 +117,7 @@ function markWhatsappDestinations() {
     anchor.classList.add('whatsappDestination');
   });
 
-  document.querySelector('.invoiceSubmitButton')?.classList.add('whatsappActionButton');
+  // O fluxo de fatura foi removido; o simulador é a conversão principal.
   document.querySelector('.resultFlow > button.primaryButton')?.classList.add('whatsappActionButton');
   document.querySelector('.chatbotFinished a')?.classList.add('whatsappActionButton');
 }
