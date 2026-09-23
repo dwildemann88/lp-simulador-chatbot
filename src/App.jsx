@@ -1496,31 +1496,31 @@ function TrustBand() {
     <section id="vantagens" className="trustBand">
       <div className="pageWidth trustContent">
         <div className="trustText">
-          <SectionLabel>Resultados que geram confiança</SectionLabel>
+          <SectionLabel>Por que escolher a PROJEM</SectionLabel>
 
           <div className="trustItems">
             <article>
               <MapPinned size={31} />
-              <h3>Atendimento regional</h3>
-              <p>Presença em Santa Rosa/RS e região.</p>
+              <h3>Pós-venda preparado</h3>
+              <p>Suporte contínuo depois da instalação, sem deixar o cliente sozinho.</p>
             </article>
 
             <article>
               <UsersRound size={31} />
-              <h3>Equipe técnica especializada</h3>
-              <p>Engenheiros e técnicos com experiência comprovada.</p>
+              <h3>Engenharia especializada</h3>
+              <p>Projeto e acompanhamento técnico realizados por engenheiro.</p>
             </article>
 
             <article>
               <ClipboardCheck size={31} />
-              <h3>Projetos residenciais, comerciais e rurais</h3>
-              <p>Soluções personalizadas para diferentes perfis de consumo.</p>
+              <h3>Instalação própria</h3>
+              <p>Equipe própria para executar o projeto conforme a necessidade do cliente.</p>
             </article>
           </div>
 
-          <a className="primaryButton wide" href="#simulador">
+          <a className="primaryButton wide" href="#orcamento">
             <Zap size={16} />
-            Simular minha economia
+            Solicitar orçamento
           </a>
         </div>
 
@@ -1543,7 +1543,7 @@ function About() {
           <SectionLabel>Sobre a PROJEM</SectionLabel>
           <h2>Engenharia que transforma energia em resultados.</h2>
           <p>
-            A PROJEM é uma empresa de engenharia elétrica especializada em projetos fotovoltaicos, com <strong>mais de 12 anos de mercado</strong> e <strong>mais de 3000 projetos solares</strong>. Atuamos com análise técnica, dimensionamento preciso e soluções para reduzir custos e aumentar a eficiência no uso da energia.
+            A PROJEM atua há <strong>mais de 12 anos</strong> e já instalou <strong>mais de 3.000 projetos solares</strong> na região. O trabalho combina engenharia especializada, instalação própria e um pós-venda preparado para acompanhar o cliente depois da instalação. A proposta é dimensionar o sistema de acordo com a necessidade real, sem vender equipamento que o cliente não precisa.
           </p>
 
           <div className="aboutIcons">
@@ -1604,11 +1604,11 @@ function RegionFaq() {
         <div className="regionBox">
           <SectionLabel>Atendimento regional</SectionLabel>
           <h2>Santa Rosa/RS e região</h2>
-          <p>Atuamos com atendimento próximo e análise técnica especializada.</p>
+          <p>Foco em Santa Rosa e atendimento em um raio médio de aproximadamente 80 km.</p>
 
           <div className="regionText">
             <MapPin size={19} />
-            <span>Santa Rosa/RS, Horizontina, Três de Maio, Santo Ângelo, Panambi e região.</span>
+            <span>Santa Rosa, Santo Ângelo, Ijuí, Horizontina, Giruá, Santo Cristo, Cândido Godói, Chiapetta e Três de Maio.</span>
           </div>
 
           <ImageSlot
