@@ -982,7 +982,7 @@ function SimulateFlow() {
   };
 
   useEffect(() => {
-    if (step <= 7) {
+    if (step <= 6) {
       trackSimulatorStepView(step, stepNames[step]);
       if (step === 6) {
         trackEvent("lead_form_start", {
@@ -1099,8 +1099,6 @@ function SimulateFlow() {
     setIsCalculating(true);
     setStep(7);
     setLeadPayload(payload);
-
-    trackSimulatorStepComplete(6, "contact", { name_provided: "yes", whatsapp_provided: "yes" });
 
     const { payload: registeredPayload } = await registerLeadSubmission(payload);
     setLeadPayload(registeredPayload);
