@@ -142,6 +142,7 @@ import ruralImg from "./assets/servico-rural-projem.png";
 import industrialImg from "./assets/servico-industrial-projem.png";
 import reviewMarisaImg from "./assets/review-marisa-zink.png";
 import reviewTenyImg from "./assets/review-teny-cabeireleiro.png";
+import solarRooftopImg from "./assets/solar-rooftop.jpg";
 const imageSlots = {
   heroCouple: heroCoupleImg,
   heroFloatingMockup: heroMockupImg,
@@ -1593,6 +1594,7 @@ function KitsSection() {
         <SectionLabel>Kits solares</SectionLabel>
         <div className="kitsHeader"><h2>Kits a partir de</h2><p>Os valores abaixo são referências iniciais. O dimensionamento final depende do consumo e das condições do imóvel.</p></div>
         <div className="kitGrid">{kits.map((kit) => <article className="kitCard" key={kit.size}><span>{kit.bill}</span><strong>{kit.size}</strong><b>{kit.price}</b><small>Financie ou parcele no cartão*</small></article>)}</div>
+        <div className="kitVisual"><img src={solarRooftopImg} alt="Sistema de energia solar instalado em telhado" /></div>
         <p className="kitFootnote">*Financiamento sujeito à análise do banco. O sistema recomendado pode mudar após a análise técnica.</p>
       </div>
     </section>
