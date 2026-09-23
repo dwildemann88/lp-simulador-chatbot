@@ -1325,6 +1325,85 @@ function SimulateFlow() {
 }
 
 
+function QuoteForm() {
+  const [form, setForm] = useState({
+    bill: "", roof: "", concessionaria: "", city: "", name: "", phone: "", email: "",
+  });
+  const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  function update(key, value) { setForm((current) => ({ ...current, [key]: value })); }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!form.name.trim() || !phoneIsValid(form.phone) || !form.city.trim() || !form.bill) {
+      setStatus("Preencha nome, WhatsApp, cidade e valor médio da conta.");
+      trackEvent("quote_form_error", { error_type: "required_fields" });
+      return;
+    }
+    setSubmitting(true); setStatus("");
+    const billValue = parseCurrency(form.bill);
+    const payload = normalizeLeadPayload({
+      ...buildBasePayload("orcamento_final"),
+      nome: form.name.trim(),
+      telefone: cleanNumber(form.phone),
+      whatsapp: cleanNumber(form.phone),
+      email: form.email.trim(),
+      cidade: form.city.trim(),
+      cidade_digitada: form.city.trim(),
+      tipo_imovel: "Residencial",
+      tipo_unidade: "Residencial",
+      tipo_telhado: form.roof || "Não informado",
+      concessionaria: form.concessionaria || "Não informado",
+      valor_conta: billValue,
+      conta: billValue,
+      valor_conta_formatado: formatMoney(billValue),
+      prazo_instalacao: "Não informado",
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false }),
+      lead_priority: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false }).toLowerCase().replace(/\\s+/g, "_"),
+      nivel_intencao: "Alta",
+      origem_cta: "orcamento_final",
+      etapa_finalizada: "formulario_orcamento",
+      fatura_enviada: false,
+    });
+    trackEvent("quote_form_submit", buildTrackingParams(payload));
+    await registerLeadSubmission(payload);
+    trackEvent("quote_form_success", buildTrackingParams(payload));
+    setSubmitting(false);
+    setStatus("Recebemos seus dados. A SDR fará o contato em breve.");
+  }
+
+  return (
+    <section id="orcamento" className="quoteSection">
+      <div className="pageWidth quoteGrid">
+        <div className="quoteIntro">
+          <SectionLabel>Orçamento</SectionLabel>
+          <h2>Quer um projeto pensado para o seu consumo?</h2>
+          <p>Informe os dados principais. A equipe analisa o cenário e entra em contato para avançar com o orçamento.</p>
+          <div className="quoteProof">
+            <strong>Mais de 12 anos de mercado</strong>
+            <span>+3.000 projetos solares instalados na região</span>
+            <span>Projeto e acompanhamento técnico realizados por engenheiro</span>
+          </div>
+        </div>
+        <form className="quoteForm" onSubmit={submit}>
+          <div className="quoteFields">
+            <label>Valor médio da conta<input value={form.bill} onChange={(e) => update("bill", currencyInput(e.target.value))} placeholder="Ex.: R$ 800,00" inputMode="numeric" /></label>
+            <label>Estrutura do telhado<select value={form.roof} onChange={(e) => update("roof", e.target.value)}><option value="">Selecione</option>{structureTypes.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+            <label>Concessionária<select value={form.concessionaria} onChange={(e) => update("concessionaria", e.target.value)}><option value="">Selecione</option><option>RGE</option><option>Cooperluz</option><option>Outra</option></select></label>
+            <label>Cidade<input value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="Ex.: Santa Rosa" /></label>
+            <label>Nome<input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Seu nome" autoComplete="name" /></label>
+            <label>WhatsApp<input value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="Seu WhatsApp" inputMode="tel" autoComplete="tel" /></label>
+            <label className="quoteFull">E-mail<input value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="seuemail@exemplo.com" type="email" autoComplete="email" /></label>
+          </div>
+          {status && <div className={status.startsWith("Recebemos") ? "formSuccess" : "formError"}>{status}</div>}
+          <button className="primaryButton full" type="submit" disabled={submitting}>{submitting ? "Enviando..." : "Solicitar meu orçamento"}<ArrowRight size={16} /></button>
+          <small>Financiamento sujeito à análise da instituição financeira.</small>
+        </form>
+      </div>
+    </section>
+  );
+}
 function EconomySection() {
   return (
     <section id="simulador" className="economySection">
@@ -2091,6 +2170,7 @@ export default function App() {
       <TrustBand />
       <About />
       <RegionFaq />
+      <QuoteForm />
       <Footer />
       <FloatingWhatsappButton />
     </main>
