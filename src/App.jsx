@@ -1197,7 +1197,7 @@ function SimulateFlow() {
       {step === 3 && (
         <div className="flowPanel">
           <h3>Qual é a estrutura do telhado?</h3>
-          <p>Se não souber, escolha a opção mais próxima. A análise técnica refina o dimensionamento depois.</p>
+          <p>Se não souber, escolha a opção mais próxima.</p>
 
           <div className="choiceGrid">
             {structureTypes.map((item) => (
