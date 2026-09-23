@@ -285,6 +285,12 @@ function phoneIsValid(value = "") {
   return phone.length >= 10 && phone.length <= 13;
 }
 
+function estimateKitPrice(billValue = 0) {
+  if (billValue >= 1000) return 24900;
+  if (billValue >= 800) return 18900;
+  return 14900;
+}
+
 function calculateEstimate({ billValue, unitType, structureType }) {
   let percent = 0.72;
 
@@ -1073,6 +1079,7 @@ function SimulateFlow() {
       economia_anual_estimada: Number(result.annualSavings.toFixed(2)),
       nova_conta_estimada: Number(result.newBill.toFixed(2)),
       percentual_economia: Number((result.percent * 100).toFixed(2)),
+      investimento_estimado: estimateKitPrice(billValue),
       fatura_enviada: false,
       fatura_nome_arquivo: "",
       status_lead: "Novo",
@@ -1296,9 +1303,9 @@ function SimulateFlow() {
               <small>por mês</small>
             </article>
             <article>
-              <span>Economia anual</span>
-              <strong>{formatMoney(result.annualSavings)}</strong>
-              <small>estimada</small>
+              <span>Investimento inicial</span>
+              <strong>{formatMoney(estimateKitPrice(billValue))}</strong>
+              <small>estimativa de referência</small>
             </article>
             <article>
               <span>Nova conta estimada</span>
@@ -1306,6 +1313,7 @@ function SimulateFlow() {
               <small>após compensação</small>
             </article>
           </div>
+          <p className="resultDisclaimer">A estimativa é inicial e pode mudar após a análise técnica do imóvel, consumo e condições do projeto.</p>
 
           <button type="button" className="primaryButton full" onClick={sendResultToWhatsapp}>
             Receber análise pelo WhatsApp
