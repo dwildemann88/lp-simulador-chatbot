@@ -919,7 +919,7 @@ function ProofBar() {
       <div className="pageWidth proofGrid">
         <article>
           <Zap size={27} />
-          <p>Análise técnica<br />da sua fatura</p>
+          <p>Análise técnica<br />do seu cenário</p>
         </article>
         <article>
           <MapPinned size={27} />
@@ -1104,10 +1104,6 @@ function SimulateFlow() {
     setLeadPayload(payload);
 
     trackSimulatorStepComplete(7, "whatsapp", { whatsapp_provided: "yes" });
-    trackEvent("generate_lead", {
-      ...buildTrackingParams(payload),
-      simulator_version: "v2",
-    });
 
     const { payload: registeredPayload } = await registerLeadSubmission(payload);
     setLeadPayload(registeredPayload);
@@ -1218,7 +1214,7 @@ function SimulateFlow() {
       {step === 3 && (
         <div className="flowPanel">
           <h3>Qual é a estrutura do telhado?</h3>
-          <p>Se não souber, escolha a opção mais próxima. A fatura refina a análise depois.</p>
+          <p>Se não souber, escolha a opção mais próxima. A análise técnica refina o dimensionamento depois.</p>
 
           <div className="choiceGrid">
             {structureTypes.map((item) => (
@@ -1311,7 +1307,7 @@ function SimulateFlow() {
         <div className="flowPanel resultFlow">
           <div>
             <h3>Sua estimativa inicial</h3>
-            <p>Esse valor é uma projeção. A análise da fatura deixa o cenário mais preciso.</p>
+            <p>Esse valor é uma projeção. A análise técnica deixa o cenário mais preciso.</p>
           </div>
 
           <div className="resultCards">
