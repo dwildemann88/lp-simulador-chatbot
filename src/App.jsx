@@ -140,6 +140,8 @@ import residentialImg from "./assets/servico-residencial-projem.png";
 import commercialImg from "./assets/servico-comercial-projem.png";
 import ruralImg from "./assets/servico-rural-projem.png";
 import industrialImg from "./assets/servico-industrial-projem.png";
+import reviewMarisaImg from "./assets/review-marisa-zink.png";
+import reviewTenyImg from "./assets/review-teny-cabeireleiro.png";
 const imageSlots = {
   heroCouple: heroCoupleImg,
   heroFloatingMockup: heroMockupImg,
@@ -1591,15 +1593,15 @@ function KitsSection() {
 
 function Testimonials() {
   const testimonials = [
-    { name: "Marisa Zink", text: "Muito bom atendimento, bastante agilidade na entrega e instalação dos produtos. Vendedor prestativo e atencioso tirando todas as dúvidas sempre quando solicitado." },
-    { name: "Teny Cabeireleiro", text: "As placas solares instaladas são de altíssima qualidade, e o atendimento dos funcionários foi impecável. A instalação foi feita com muito capricho e atenção aos detalhes." },
+    { name: "Marisa Zink", text: "Muito bom atendimento, bastante agilidade na entrega e instalação dos produtos. Vendedor prestativo e atencioso tirando todas as dúvidas sempre quando solicitado.", image: reviewMarisaImg },
+    { name: "Teny Cabeireleiro", text: "As placas solares instaladas são de altíssima qualidade, e o atendimento dos funcionários foi impecável. A instalação foi feita com muito capricho e atenção aos detalhes.", image: reviewTenyImg },
     { name: "Camila Thoma", text: "Empresa séria, cumpre os prazos e oferece equipamentos de primeira linha. Suporte técnico rápido e eficiente." },
   ];
   return (
     <section id="analises" className="testimonialsSection">
       <div className="pageWidth">
         <div className="testimonialsHeader"><SectionLabel>Experiência de clientes</SectionLabel><h2>Atendimento que continua depois da instalação.</h2><p>A avaliação pública dos clientes reforça um dos principais diferenciais da PROJEM: suporte e acompanhamento.</p></div>
-        <div className="testimonialGrid">{testimonials.map((item) => <article className="testimonialCard" key={item.name}><div className="stars">★★★★★</div><p>“{item.text}”</p><strong>{item.name}</strong><small>Avaliação no Google</small></article>)}</div>
+        <div className="testimonialGrid">{testimonials.map((item) => <article className="testimonialCard" key={item.name}>{item.image && <img className="testimonialProof" src={item.image} alt={`Avaliação de ${item.name} no Google`} />}<div className="stars">★★★★★</div><p>“{item.text}”</p><strong>{item.name}</strong><small>Avaliação no Google</small></article>)}</div>
       </div>
     </section>
   );
