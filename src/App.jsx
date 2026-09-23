@@ -851,7 +851,15 @@ function Header() {
             ))}
           </nav>
 
-          <a className="topCta" href="#simulador" aria-label="Simular economia">
+          <a
+            className="topCta"
+            href="#simulador"
+            aria-label="Simular economia"
+            onClick={() => {
+              trackEvent("cta_click", { cta_name: "simulate_economy", location: "header", destination: "simulator" });
+              markSimulatorStarted("header");
+            }}
+          >
             <Zap size={15} />
             <span>Simular economia</span>
           </a>
@@ -873,7 +881,11 @@ function Header() {
             </a>
           ))}
 
-          <a className="drawerCta" href="#simulador" onClick={() => setOpen(false)}>
+          <a className="drawerCta" href="#simulador" onClick={() => {
+            setOpen(false);
+            trackEvent("cta_click", { cta_name: "simulate_economy", location: "mobile_menu", destination: "simulator" });
+            markSimulatorStarted("mobile_menu");
+          }}>
             <Zap size={16} />
             Simular economia
           </a>
