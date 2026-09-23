@@ -974,6 +974,7 @@ function SimulateFlow() {
   const [city, setCity] = useState("");
   const [geo, setGeo] = useState(null);
   const [locationStatus, setLocationStatus] = useState({ type: "", text: "" });
+  const [installationIntent, setInstallationIntent] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
@@ -988,35 +989,86 @@ function SimulateFlow() {
   );
 
   const stepLabels = [
-    { label: "Conta", activeUntil: 1 },
-    { label: "Perfil", activeUntil: 4 },
-    { label: "Dados", activeUntil: 5 },
-    { label: "Resultado", activeUntil: 6 },
+    { label: "Conta" },
+    { label: "Perfil" },
+    { label: "Local" },
+    { label: "Prazo" },
+    { label: "Contato" },
+    { label: "Resultado" },
   ];
+
+  const stepNames = {
+    1: "bill_value",
+    2: "property_type",
+    3: "roof_type",
+    4: "city",
+    5: "installation_intent",
+    6: "name",
+    7: "whatsapp",
+  };
+
+  useEffect(() => {
+    if (step <= 7) {
+      trackSimulatorStepView(step, stepNames[step]);
+      if (step === 6) {
+        trackEvent("lead_form_start", {
+          simulator_version: "v2",
+          form_type: "simulator_lead",
+          form_step: 6,
+        });
+      }
+    }
+  }, [step]);
 
   function getVisualStep() {
     if (step <= 1) return 1;
-    if (step <= 4) return 2;
-    if (step === 5) return 3;
-    return 4;
+    if (step <= 3) return 2;
+    if (step === 4) return 3;
+    if (step === 5) return 4;
+    if (step <= 7) return 5;
+    return 6;
   }
 
   function next() {
     setError("");
-    trackEvent("simulator_step_next", { step, origem_formulario: "simulador_solar" });
+    markSimulatorStarted("simulator_interaction");
 
     if (step === 1 && billValue <= 0) {
       setError("Informe o valor médio da conta de luz.");
+      trackSimulatorStepError(step, stepNames[step], "missing_bill_value");
       return;
     }
 
     if (step === 4 && !city.trim()) {
       setError("Informe sua cidade ou use a localização automática.");
+      trackSimulatorStepError(step, stepNames[step], "missing_city");
       return;
     }
 
-    if (step < 5) {
+    if (step === 5 && !installationIntent) {
+      setError("Informe quando pretende instalar.");
+      trackSimulatorStepError(step, stepNames[step], "missing_installation_intent");
+      return;
+    }
+
+    if (step === 6 && !name.trim()) {
+      setError("Informe seu nome.");
+      trackSimulatorStepError(step, stepNames[step], "missing_name");
+      return;
+    }
+
+    if (step <= 5) {
+      trackSimulatorStepComplete(step, stepNames[step], {
+        ...(step === 1 ? { bill_range: billValue >= 1000 ? "1000_plus" : billValue >= 500 ? "500_999" : "under_500" } : {}),
+        ...(step === 2 ? { property_type: unitType } : {}),
+        ...(step === 3 ? { roof_type: structureType } : {}),
+        ...(step === 4 ? { city: city.trim() } : {}),
+        ...(step === 5 ? { installation_intent: installationIntent } : {}),
+      });
       setStep((current) => current + 1);
+    } else if (step === 6) {
+      trackSimulatorStepComplete(step, stepNames[step], { name_provided: "yes" });
+      setStep(7);
     }
   }
 
@@ -1053,9 +1105,11 @@ function SimulateFlow() {
       fatura_nome_arquivo: "",
       status_lead: "Novo",
       nivel_intencao: billValue >= 850 ? "Alta" : "Média",
-      prioridade_comercial: getCommercialPriority({ billValue, hasInvoice: false }),
+      prazo_instalacao: installationIntent,
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }),
+      lead_priority: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }).toLowerCase().replace(/\s+/g, "_"),
       consentimento_contato: true,
-      etapa_finalizada: "dados_antes_resultado",
+      etapa_finalizada: "dados_completos",
       origem_cta: "revelar_estimativa",
       ja_fez_orcamento: "Não informado",
     });
@@ -1078,10 +1132,14 @@ function SimulateFlow() {
 
     setIsSubmitting(true);
     setIsCalculating(true);
-    setStep(6);
+    setStep(8);
     setLeadPayload(payload);
 
-    trackEvent("lead_form_completed_before_result", buildTrackingParams(payload));
+    trackSimulatorStepComplete(7, "whatsapp", { whatsapp_provided: "yes" });
+    trackEvent("generate_lead", {
+      ...buildTrackingParams(payload),
+      simulator_version: "v2",
+    });
 
     const { payload: registeredPayload } = await registerLeadSubmission(payload);
     setLeadPayload(registeredPayload);
@@ -1089,12 +1147,10 @@ function SimulateFlow() {
     window.setTimeout(() => {
       setIsCalculating(false);
       setIsSubmitting(false);
-      trackEvent("simulation_result_view", {
-        origem_formulario: registeredPayload.origem_formulario,
-        lead_id: registeredPayload.lead_id,
-        event_id: registeredPayload.event_id,
-        valor_conta: registeredPayload.valor_conta,
-        estimativa_economia_mensal: registeredPayload.estimativa_economia_mensal,
+      trackEvent("simulator_result_view", {
+        ...buildTrackingParams(registeredPayload),
+        simulator_version: "v2",
+        estimated_monthly_saving: registeredPayload.estimativa_economia_mensal,
       });
     }, 1600);
   }
@@ -1110,6 +1166,7 @@ function SimulateFlow() {
       `Tipo de unidade: ${unitType}`,
       `Estrutura/telhado: ${structureType}`,
       `Cidade: ${city}`,
+      `Prazo para instalação: ${installationIntent}`,
       `Economia estimada: ${formatMoney(result.monthlySavings)} por mês`,
       `Economia anual estimada: ${formatMoney(result.annualSavings)}`,
     ].filter(Boolean).join("\n");
