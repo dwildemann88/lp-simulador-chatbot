@@ -1564,6 +1564,39 @@ function About() {
   );
 }
 
+function KitsSection() {
+  const kits = [
+    { size: "4,20 kWp", bill: "fatura a partir de R$ 500", price: "R$ 14.900" },
+    { size: "7,00 kWp", bill: "fatura a partir de R$ 800", price: "R$ 18.900" },
+    { size: "9,00 kWp", bill: "fatura a partir de R$ 1.000", price: "R$ 24.900" },
+  ];
+  return (
+    <section className="kitsSection">
+      <div className="pageWidth">
+        <SectionLabel>Kits solares</SectionLabel>
+        <div className="kitsHeader"><h2>Kits a partir de</h2><p>Os valores abaixo são referências iniciais. O dimensionamento final depende do consumo e das condições do imóvel.</p></div>
+        <div className="kitGrid">{kits.map((kit) => <article className="kitCard" key={kit.size}><span>{kit.bill}</span><strong>{kit.size}</strong><b>{kit.price}</b><small>Financie ou parcele no cartão*</small></article>)}</div>
+        <p className="kitFootnote">*Financiamento sujeito à análise do banco. O sistema recomendado pode mudar após a análise técnica.</p>
+      </div>
+    </section>
+  );
+}
+
+function Testimonials() {
+  const testimonials = [
+    { name: "Marisa Zink", text: "Muito bom atendimento, bastante agilidade na entrega e instalação dos produtos. Vendedor prestativo e atencioso tirando todas as dúvidas sempre quando solicitado." },
+    { name: "Teny Cabeireleiro", text: "As placas solares instaladas são de altíssima qualidade, e o atendimento dos funcionários foi impecável. A instalação foi feita com muito capricho e atenção aos detalhes." },
+    { name: "Camila Thoma", text: "Empresa séria, cumpre os prazos e oferece equipamentos de primeira linha. Suporte técnico rápido e eficiente." },
+  ];
+  return (
+    <section id="analises" className="testimonialsSection">
+      <div className="pageWidth">
+        <div className="testimonialsHeader"><SectionLabel>Experiência de clientes</SectionLabel><h2>Atendimento que continua depois da instalação.</h2><p>A avaliação pública dos clientes reforça um dos principais diferenciais da PROJEM: suporte e acompanhamento.</p></div>
+        <div className="testimonialGrid">{testimonials.map((item) => <article className="testimonialCard" key={item.name}><div className="stars">★★★★★</div><p>“{item.text}”</p><strong>{item.name}</strong><small>Avaliação no Google</small></article>)}</div>
+      </div>
+    </section>
+  );
+}
 function RegionFaq() {
   return (
     <section id="analises" className="regionFaq">
@@ -2169,6 +2202,8 @@ export default function App() {
       <Services />
       <TrustBand />
       <About />
+      <KitsSection />
+      <Testimonials />
       <RegionFaq />
       <QuoteForm />
       <Footer />
