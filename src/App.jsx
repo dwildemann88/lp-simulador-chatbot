@@ -1557,10 +1557,12 @@ function RegionFaq() {
 
 function Footer() {
   function trackFooterSimulator() {
-    trackEvent("footer_simulator_click", {
-      origem_formulario: "footer_cta",
-      origem_cta: "footer_simular_agora",
+    trackEvent("cta_click", {
+      cta_name: "simulate_economy",
+      location: "footer",
+      destination: "simulator",
     });
+    markSimulatorStarted("footer");
   }
 
   return (
