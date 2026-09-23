@@ -3275,7 +3275,7 @@ main {
 .testimonialsHeader p{margin:14px 0 0;color:#666;line-height:1.6;font-size:14px}
 .testimonialGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
 .testimonialCard{padding:24px;border:1px solid #e5e5e5;border-radius:12px;background:#fff}
-.testimonialCard .stars{color:#f5b400;letter-spacing:2px;font-size:15px}
+.testimonialProof{width:100%;max-height:145px;object-fit:contain;object-position:left center;margin-bottom:14px;border:1px solid #eee;border-radius:7px;background:#fff}\n.testimonialCard .stars{color:#f5b400;letter-spacing:2px;font-size:15px}
 .testimonialCard p{margin:15px 0 20px;color:#444;font-size:13.5px;line-height:1.6}
 .testimonialCard strong,.testimonialCard small{display:block}
 .testimonialCard strong{font-size:13px;color:#111}.testimonialCard small{margin-top:4px;color:#888;font-size:11px}
