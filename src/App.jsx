@@ -458,26 +458,35 @@ function normalizeLeadPayload(payload = {}) {
 
 function buildTrackingParams(payload = {}) {
   return {
-    lead_id: payload.lead_id,
-    event_id: payload.event_id,
-    origem_formulario: payload.origem_formulario,
-    origem: payload.origem,
-    valor_conta: payload.valor_conta,
-    conta: payload.conta,
-    tipo_imovel: payload.tipo_imovel,
-    cidade: payload.cidade,
-    cidade_digitada: payload.cidade_digitada,
-    fatura_enviada: payload.fatura_enviada,
-    nivel_intencao: payload.nivel_intencao,
-    prioridade_comercial: payload.prioridade_comercial,
-    utm_source: payload.utm_source,
-    utm_medium: payload.utm_medium,
-    utm_campaign: payload.utm_campaign,
-    utm_content: payload.utm_content,
-    utm_term: payload.utm_term,
-    gclid: payload.gclid,
-    gbraid: payload.gbraid,
-    wbraid: payload.wbraid,
+    lead_id: payload.lead_id || "",
+    event_id: payload.event_id || "",
+    session_id: payload.session_id || "",
+    client_id: payload.client_id || "",
+    origem_formulario: payload.origem_formulario || "",
+    origem: payload.origem || "",
+    origem_cta: payload.origem_cta || "",
+    valor_conta: payload.valor_conta ?? "",
+    conta: payload.conta ?? "",
+    tipo_imovel: payload.tipo_imovel || "",
+    tipo_unidade: payload.tipo_unidade || "",
+    tipo_telhado: payload.tipo_telhado || "",
+    cidade: payload.cidade || "",
+    cidade_digitada: payload.cidade_digitada || "",
+    prazo_instalacao: payload.prazo_instalacao || "",
+    fatura_enviada: payload.fatura_enviada ?? "",
+    nivel_intencao: payload.nivel_intencao || "",
+    prioridade_comercial: payload.prioridade_comercial || "",
+    lead_priority: payload.lead_priority || "",
+    utm_source: payload.utm_source || "",
+    utm_medium: payload.utm_medium || "",
+    utm_campaign: payload.utm_campaign || "",
+    utm_content: payload.utm_content || "",
+    utm_term: payload.utm_term || "",
+    utm_id: payload.utm_id || "",
+    gclid: payload.gclid || "",
+    gbraid: payload.gbraid || "",
+    wbraid: payload.wbraid || "",
+    fbclid: payload.fbclid || "",
   };
 }
 
@@ -485,15 +494,68 @@ function trackEvent(name, params = {}) {
   const payload = {
     event_category: "solar_lead",
     page_path: window.location.pathname,
+    source_site: window.location.hostname || "sitesolar.projem.com.br",
+    site_version: "qualified-funnel-v2",
     ...params,
   };
-
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: name, ...payload });
+  if (typeof window.gtag === "function") window.gtag("event", name, payload);
+}
 
-  if (typeof window.gtag === "function") {
-    window.gtag("event", name, payload);
+function markSimulatorStarted(entryPoint = "simulator") {
+  try {
+    if (sessionStorage.getItem("projem_simulator_started") === "1") return;
+    sessionStorage.setItem("projem_simulator_started", "1");
+  } catch {}
+  trackEvent("simulator_start", { entry_point: entryPoint, simulator_version: "v2" });
+}
+
+function trackSimulatorStepView(step, stepName) {
+  trackEvent("simulator_step_view", { simulator_version: "v2", step_number: step, step_name: stepName });
+}
+
+function trackSimulatorStepComplete(step, stepName, value = {}) {
+  trackEvent("simulator_step_complete", { simulator_version: "v2", step_number: step, step_name: stepName, ...value });
+}
+
+function trackSimulatorStepError(step, stepName, errorType) {
+  trackEvent("simulator_step_error", { simulator_version: "v2", step_number: step, step_name: stepName, error_type: errorType });
+}
+
+function setupBehaviorTracking() {
+  const seenSections = new Set();
+  const sections = ["inicio", "simulador", "servicos", "vantagens", "sobre", "analises", "contato"];
+  let observer;
+  if ("IntersectionObserver" in window) {
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) return;
+        const id = entry.target.id;
+        if (!id || seenSections.has(id)) return;
+        seenSections.add(id);
+        trackEvent("section_view", { section_name: id });
+      });
+    }, { threshold: [0.5] });
+    sections.forEach((id) => { const element = document.getElementById(id); if (element) observer.observe(element); });
   }
+  const milestones = new Set();
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(() => {
+      ticking = false;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return;
+      const percent = Math.round((window.scrollY / max) * 100);
+      [50, 75, 90].forEach((milestone) => {
+        if (percent >= milestone && !milestones.has(milestone)) { milestones.add(milestone); trackEvent("scroll_milestone", { percent: milestone }); }
+      });
+    });
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  return () => { observer?.disconnect(); window.removeEventListener("scroll", onScroll); };
 }
 function initGa() {
   if (!GA_MEASUREMENT_ID || typeof document === "undefined") return;
@@ -567,16 +629,15 @@ async function registerLeadSubmission(payload, file) {
   const makeResponse = await sendLeadToMake(normalizedPayload, file);
 
   if (makeResponse.ok) {
-    trackEvent("make_webhook_success", {
-      origem_formulario: normalizedPayload.origem_formulario,
-      lead_id: normalizedPayload.lead_id,
-      event_id: normalizedPayload.event_id,
+    trackEvent("lead_delivery_success", {
+      ...buildTrackingParams(normalizedPayload),
+      delivery_system: "make",
+      crm_system: "isales",
     });
   } else {
-    trackEvent("make_webhook_failed", {
-      origem_formulario: normalizedPayload.origem_formulario,
-      lead_id: normalizedPayload.lead_id,
-      event_id: normalizedPayload.event_id,
+    trackEvent("lead_delivery_failed", {
+      ...buildTrackingParams(normalizedPayload),
+      delivery_system: "make",
       reason: makeResponse.reason || makeResponse.error || makeResponse.status || "unknown",
     });
   }
