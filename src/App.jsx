@@ -140,6 +140,8 @@ import residentialImg from "./assets/servico-residencial-projem.png";
 import commercialImg from "./assets/servico-comercial-projem.png";
 import ruralImg from "./assets/servico-rural-projem.png";
 import industrialImg from "./assets/servico-industrial-projem.png";
+import reviewMarisaImg from "./assets/review-marisa-zink.png";
+import reviewTenyImg from "./assets/review-teny-cabeireleiro.png";
 const imageSlots = {
   heroCouple: heroCoupleImg,
   heroFloatingMockup: heroMockupImg,
@@ -223,33 +225,37 @@ const serviceItems = [
 ];
 
 const steps = [
-  { title: "Conta de luz", text: "Informe o valor ou envie sua fatura.", icon: FileText },
-  { title: "Simulação", text: "Avance pelas etapas do consumo.", icon: BarChart3 },
-  { title: "Envio da fatura", text: "Você pode enviar a conta pelo WhatsApp.", icon: Upload },
-  { title: "Análise técnica", text: "A equipe avalia seu cenário.", icon: ShieldCheck },
-  { title: "Economia", text: "Receba uma estimativa com mais clareza.", icon: Zap },
+  { title: "Simulação", text: "Informe seu consumo e veja uma estimativa inicial.", icon: BarChart3 },
+  { title: "Qualificação", text: "Perfil, telhado, cidade e prazo de instalação.", icon: ClipboardCheck },
+  { title: "Estimativa", text: "Receba uma projeção antes de falar com a equipe.", icon: Zap },
+  { title: "Análise técnica", text: "Seu cenário é avaliado por um engenheiro especializado.", icon: ShieldCheck },
+  { title: "Orçamento", text: "A SDR conduz o próximo passo conforme seu momento.", icon: UsersRound },
 ];
 
 const faqItems = [
   {
-    question: "A análise da fatura gera algum custo ou compromisso?",
-    answer:
-      "Não. A análise inicial é gratuita e sem compromisso. A PROJEM avalia sua fatura para entender seu consumo e indicar se a energia solar faz sentido para o seu caso.",
+    question: "Quanto tempo leva para instalar o sistema?",
+    answer: "O prazo de instalação é de aproximadamente 30 dias, considerando as etapas técnicas e as condições do projeto.",
   },
   {
-    question: "Preciso fazer alguma manutenção no sistema?",
-    answer:
-      "Sim, mas é uma manutenção simples e periódica. Em geral, envolve limpeza dos módulos e conferência do funcionamento do sistema para manter a geração eficiente.",
+    question: "Posso usar um único sistema para duas casas?",
+    answer: "Pela legislação vigente, não é possível estruturar uma nova instalação dessa forma como era feito anteriormente. Existem regras específicas para sistemas instalados antes da mudança da legislação.",
   },
   {
-    question: "Quanto tempo leva para receber a análise técnica?",
-    answer:
-      "Após o envio da fatura e dos dados básicos, a equipe consegue fazer uma avaliação inicial e retornar pelo WhatsApp com mais clareza sobre economia, viabilidade e próximos passos.",
+    question: "Por quanto tempo o sistema produz energia?",
+    answer: "Os módulos são projetados para operar por cerca de 25 anos, com redução gradual da capacidade de geração ao longo do tempo.",
   },
   {
-    question: "A PROJEM cuida de toda a parte de documentação?",
-    answer:
-      "Sim. A PROJEM acompanha o processo técnico, projeto, documentação e etapas necessárias para a instalação e regularização do sistema junto à concessionária.",
+    question: "E se meu consumo aumentar depois da instalação?",
+    answer: "O sistema deve ser dimensionado de acordo com o consumo atual e o planejamento do cliente. Se o consumo crescer, é possível avaliar uma ampliação do sistema.",
+  },
+  {
+    question: "Quantas placas eu preciso?",
+    answer: "Depende do consumo, da área disponível, da orientação do telhado e do investimento pretendido. Também é possível começar com um sistema menor e ampliar posteriormente.",
+  },
+  {
+    question: "O financiamento é garantido?",
+    answer: "Não. As condições de financiamento dependem da análise e aprovação da instituição financeira.",
   },
 ];
 
@@ -277,6 +283,12 @@ function formatMoney(value) {
 function phoneIsValid(value = "") {
   const phone = cleanNumber(value);
   return phone.length >= 10 && phone.length <= 13;
+}
+
+function estimateKitPrice(billValue = 0) {
+  if (billValue >= 1000) return 24900;
+  if (billValue >= 800) return 18900;
+  return 14900;
 }
 
 function calculateEstimate({ billValue, unitType, structureType }) {
@@ -417,7 +429,10 @@ function buildBasePayload(originForm) {
     fbclid: attribution.fbclid || "",
   };
 }
-function getCommercialPriority({ billValue = 0, installationIntent = "sem_prazo", hasInvoice = false }) {
+function getCommercialPriority({ billValue = 0, installationIntent = "sem_prazo", hasInvoice = false, city = "" }) {
+  const normalizedCity = String(city).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  const servedCities = ["santa rosa","santo angelo","ijui","horizontina","girua","santo cristo","candido godoi","chiapetta","tres de maio"];
+  if (normalizedCity && !servedCities.includes(normalizedCity)) return "Baixa";
   const nearTerm = installationIntent === "0_3_meses";
   const midTerm = installationIntent === "3_6_meses";
   if (billValue >= 850 && nearTerm) return "Alta";
@@ -477,6 +492,8 @@ function buildTrackingParams(payload = {}) {
     nivel_intencao: payload.nivel_intencao || "",
     prioridade_comercial: payload.prioridade_comercial || "",
     lead_priority: payload.lead_priority || "",
+    concessionaria: payload.concessionaria || "",
+    email: payload.email || "",
     utm_source: payload.utm_source || "",
     utm_medium: payload.utm_medium || "",
     utm_campaign: payload.utm_campaign || "",
@@ -968,27 +985,17 @@ function SimulateFlow() {
     [billValue, unitType, structureType]
   );
 
-  const stepLabels = [
-    { label: "Conta" },
-    { label: "Perfil" },
-    { label: "Local" },
-    { label: "Prazo" },
-    { label: "Contato" },
-    { label: "Resultado" },
-  ];
-
-  const stepNames = {
+   const stepNames = {
     1: "bill_value",
     2: "property_type",
     3: "roof_type",
     4: "city",
     5: "installation_intent",
-    6: "name",
-    7: "whatsapp",
+    6: "contact",
   };
 
   useEffect(() => {
-    if (step <= 7) {
+    if (step <= 6) {
       trackSimulatorStepView(step, stepNames[step]);
       if (step === 6) {
         trackEvent("lead_form_start", {
@@ -1000,16 +1007,7 @@ function SimulateFlow() {
     }
   }, [step]);
 
-  function getVisualStep() {
-    if (step <= 1) return 1;
-    if (step <= 3) return 2;
-    if (step === 4) return 3;
-    if (step === 5) return 4;
-    if (step <= 7) return 5;
-    return 6;
-  }
-
-  function next() {
+   function next() {
     setError("");
     markSimulatorStarted("simulator_interaction");
 
@@ -1031,9 +1029,9 @@ function SimulateFlow() {
       return;
     }
 
-    if (step === 6 && !name.trim()) {
-      setError("Informe seu nome.");
-      trackSimulatorStepError(step, stepNames[step], "missing_name");
+    if (step === 6 && (!name.trim() || !phoneIsValid(phone))) {
+      setError(!name.trim() ? "Informe seu nome." : "Informe um WhatsApp válido.");
+      trackSimulatorStepError(step, stepNames[step], !name.trim() ? "missing_name" : "invalid_phone");
       return;
     }
 
@@ -1047,8 +1045,8 @@ function SimulateFlow() {
       });
       setStep((current) => current + 1);
     } else if (step === 6) {
-      trackSimulatorStepComplete(step, stepNames[step], { name_provided: "yes" });
-      setStep(7);
+      trackSimulatorStepComplete(step, stepNames[step], { name_provided: "yes", whatsapp_provided: "yes" });
+      revealEstimate();
     }
   }
 
@@ -1081,12 +1079,13 @@ function SimulateFlow() {
       economia_anual_estimada: Number(result.annualSavings.toFixed(2)),
       nova_conta_estimada: Number(result.newBill.toFixed(2)),
       percentual_economia: Number((result.percent * 100).toFixed(2)),
+      investimento_estimado: estimateKitPrice(billValue),
       fatura_enviada: false,
       fatura_nome_arquivo: "",
       status_lead: "Novo",
       nivel_intencao: billValue >= 850 ? "Alta" : "Média",
       prazo_instalacao: installationIntent,
-      prioridade_comercial: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }),
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent, hasInvoice: false, city }),
       lead_priority: getCommercialPriority({ billValue, installationIntent, hasInvoice: false }).toLowerCase().replace(/\s+/g, "_"),
       consentimento_contato: true,
       etapa_finalizada: "dados_completos",
@@ -1112,10 +1111,8 @@ function SimulateFlow() {
 
     setIsSubmitting(true);
     setIsCalculating(true);
-    setStep(8);
+    setStep(7);
     setLeadPayload(payload);
-
-    trackSimulatorStepComplete(7, "whatsapp", { whatsapp_provided: "yes" });
 
     const { payload: registeredPayload } = await registerLeadSubmission(payload);
     setLeadPayload(registeredPayload);
@@ -1159,22 +1156,8 @@ function SimulateFlow() {
 
   return (
     <div className="simulatorPanel">
-      <div className="stepLine compactStepper" aria-label="Etapas da simulação">
-        {stepLabels.map((item, index) => {
-          const number = index + 1;
-          const visualStep = getVisualStep();
-
-          return (
-            <div key={item.label} className={visualStep >= number ? "active" : ""}>
-              <span>{number}</span>
-              <small>{item.label}</small>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="progressBar">
-        <i style={{ width: `${(getVisualStep() / stepLabels.length) * 100}%` }} />
+      <div className="progressBar" aria-label="Progresso da simulação">
+        <i style={{ width: `${Math.min(step, 6) / 6 * 100}%` }} />
       </div>
 
       {step === 1 && (
@@ -1226,7 +1209,7 @@ function SimulateFlow() {
       {step === 3 && (
         <div className="flowPanel">
           <h3>Qual é a estrutura do telhado?</h3>
-          <p>Se não souber, escolha a opção mais próxima. A análise técnica refina o dimensionamento depois.</p>
+          <p>Se não souber, escolha a opção mais próxima.</p>
 
           <div className="choiceGrid">
             {structureTypes.map((item) => (
@@ -1276,31 +1259,22 @@ function SimulateFlow() {
 
       {step === 6 && (
         <div className="flowPanel resultGate">
-          <h3>Para liberar sua estimativa</h3>
-          <p>Informe seu nome para continuar.</p>
-          <div className="leadForm">
+          <h3>Receba sua estimativa</h3>
+          <p>Informe seus dados para receber o resultado.</p>
+          <div className="leadForm contactGrid">
             <label>
               Nome
               <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" autoComplete="name" />
             </label>
-          </div>
-        </div>
-      )}
-
-      {step === 7 && (
-        <div className="flowPanel resultGate">
-          <h3>Agora, seu WhatsApp</h3>
-          <p>Precisamos dele para registrar o lead e permitir o contato da SDR.</p>
-          <div className="leadForm">
             <label>
               WhatsApp
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(55) 9968-6302" inputMode="tel" autoComplete="tel" />
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Seu WhatsApp" inputMode="tel" autoComplete="tel" />
             </label>
           </div>
         </div>
       )}
 
-      {step === 8 && isCalculating && (
+      {step === 7 && isCalculating && (
         <div className="loadingPanel">
           <div className="loadingRing">
             <Zap size={28} />
@@ -1315,7 +1289,7 @@ function SimulateFlow() {
         </div>
       )}
 
-      {step === 8 && !isCalculating && (
+      {step === 7 && !isCalculating && (
         <div className="flowPanel resultFlow">
           <div>
             <h3>Sua estimativa inicial</h3>
@@ -1329,9 +1303,9 @@ function SimulateFlow() {
               <small>por mês</small>
             </article>
             <article>
-              <span>Economia anual</span>
-              <strong>{formatMoney(result.annualSavings)}</strong>
-              <small>estimada</small>
+              <span>Investimento inicial</span>
+              <strong>{formatMoney(estimateKitPrice(billValue))}</strong>
+              <small>estimativa de referência</small>
             </article>
             <article>
               <span>Nova conta estimada</span>
@@ -1339,6 +1313,7 @@ function SimulateFlow() {
               <small>após compensação</small>
             </article>
           </div>
+          <p className="resultDisclaimer">A estimativa é inicial e pode mudar após a análise técnica do imóvel, consumo e condições do projeto.</p>
 
           <button type="button" className="primaryButton full" onClick={sendResultToWhatsapp}>
             Receber análise pelo WhatsApp
@@ -1349,15 +1324,15 @@ function SimulateFlow() {
       {error && <div className="formError">{error}</div>}
 
       <div className="flowActions">
-        {step > 1 && step < 8 && (
+        {step > 1 && step < 7 && (
           <button type="button" className="secondaryButton" onClick={back}>
             Voltar
           </button>
         )}
 
-        {step < 8 && (
-          <button type="button" className="primaryButton" onClick={step === 7 ? revealEstimate : next} disabled={isSubmitting}>
-            {step === 7 ? (isSubmitting ? "Enviando..." : "Ver minha estimativa") : "Continuar"}
+        {step < 7 && (
+          <button type="button" className="primaryButton" onClick={next} disabled={isSubmitting}>
+            {step === 6 ? (isSubmitting ? "Enviando..." : "Ver minha estimativa") : "Continuar"}
             <ArrowRight size={16} />
           </button>
         )}
@@ -1367,6 +1342,85 @@ function SimulateFlow() {
 }
 
 
+function QuoteForm() {
+  const [form, setForm] = useState({
+    bill: "", roof: "", concessionaria: "", city: "", name: "", phone: "", email: "",
+  });
+  const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  function update(key, value) { setForm((current) => ({ ...current, [key]: value })); }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!form.name.trim() || !phoneIsValid(form.phone) || !form.city.trim() || !form.bill) {
+      setStatus("Preencha nome, WhatsApp, cidade e valor médio da conta.");
+      trackEvent("quote_form_error", { error_type: "required_fields" });
+      return;
+    }
+    setSubmitting(true); setStatus("");
+    const billValue = parseCurrency(form.bill);
+    const payload = normalizeLeadPayload({
+      ...buildBasePayload("orcamento_final"),
+      nome: form.name.trim(),
+      telefone: cleanNumber(form.phone),
+      whatsapp: cleanNumber(form.phone),
+      email: form.email.trim(),
+      cidade: form.city.trim(),
+      cidade_digitada: form.city.trim(),
+      tipo_imovel: "Residencial",
+      tipo_unidade: "Residencial",
+      tipo_telhado: form.roof || "Não informado",
+      concessionaria: form.concessionaria || "Não informado",
+      valor_conta: billValue,
+      conta: billValue,
+      valor_conta_formatado: formatMoney(billValue),
+      prazo_instalacao: "Não informado",
+      prioridade_comercial: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false, city: form.city.trim() }),
+      lead_priority: getCommercialPriority({ billValue, installationIntent: "sem_prazo", hasInvoice: false }).toLowerCase().replace(/\s+/g, "_"),
+      nivel_intencao: billValue >= 500 ? "Alta" : "Média",
+      origem_cta: "orcamento_final",
+      etapa_finalizada: "formulario_orcamento",
+      fatura_enviada: false,
+    });
+    trackEvent("quote_form_submit", buildTrackingParams(payload));
+    await registerLeadSubmission(payload);
+    trackEvent("quote_form_success", buildTrackingParams(payload));
+    setSubmitting(false);
+    setStatus("Recebemos seus dados. A SDR fará o contato em breve.");
+  }
+
+  return (
+    <section id="orcamento" className="quoteSection">
+      <div className="pageWidth quoteGrid">
+        <div className="quoteIntro">
+          <SectionLabel>Orçamento</SectionLabel>
+          <h2>Quer um projeto pensado para o seu consumo?</h2>
+          <p>Informe os dados principais. A equipe analisa o cenário e entra em contato para avançar com o orçamento.</p>
+          <div className="quoteProof">
+            <strong>Mais de 12 anos de mercado</strong>
+            <span>+3.000 projetos solares instalados na região</span>
+            <span>Projeto e acompanhamento técnico realizados por engenheiro</span>
+          </div>
+        </div>
+        <form className="quoteForm" onSubmit={submit}>
+          <div className="quoteFields">
+            <label>Valor médio da conta<input value={form.bill} onChange={(e) => update("bill", currencyInput(e.target.value))} placeholder="Ex.: R$ 800,00" inputMode="numeric" /></label>
+            <label>Estrutura do telhado<select value={form.roof} onChange={(e) => update("roof", e.target.value)}><option value="">Selecione</option>{structureTypes.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+            <label>Concessionária<select value={form.concessionaria} onChange={(e) => update("concessionaria", e.target.value)}><option value="">Selecione</option><option>RGE</option><option>Cooperluz</option><option>Outra</option></select></label>
+            <label>Cidade<input value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="Ex.: Santa Rosa" /></label>
+            <label>Nome<input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Seu nome" autoComplete="name" /></label>
+            <label>WhatsApp<input value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="Seu WhatsApp" inputMode="tel" autoComplete="tel" /></label>
+            <label className="quoteFull">E-mail<input value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="seuemail@exemplo.com" type="email" autoComplete="email" /></label>
+          </div>
+          {status && <div className={status.startsWith("Recebemos") ? "formSuccess" : "formError"}>{status}</div>}
+          <button className="primaryButton full" type="submit" disabled={submitting}>{submitting ? "Enviando..." : "Solicitar meu orçamento"}<ArrowRight size={16} /></button>
+          <small>Financiamento sujeito à análise da instituição financeira.</small>
+        </form>
+      </div>
+    </section>
+  );
+}
 function EconomySection() {
   return (
     <section id="simulador" className="economySection">
@@ -1459,31 +1513,31 @@ function TrustBand() {
     <section id="vantagens" className="trustBand">
       <div className="pageWidth trustContent">
         <div className="trustText">
-          <SectionLabel>Resultados que geram confiança</SectionLabel>
+          <SectionLabel>Por que escolher a PROJEM</SectionLabel>
 
           <div className="trustItems">
             <article>
               <MapPinned size={31} />
-              <h3>Atendimento regional</h3>
-              <p>Presença em Santa Rosa/RS e região.</p>
+              <h3>Pós-venda preparado</h3>
+              <p>Suporte contínuo depois da instalação, sem deixar o cliente sozinho.</p>
             </article>
 
             <article>
               <UsersRound size={31} />
-              <h3>Equipe técnica especializada</h3>
-              <p>Engenheiros e técnicos com experiência comprovada.</p>
+              <h3>Engenharia especializada</h3>
+              <p>Projeto e acompanhamento técnico realizados por engenheiro.</p>
             </article>
 
             <article>
               <ClipboardCheck size={31} />
-              <h3>Projetos residenciais, comerciais e rurais</h3>
-              <p>Soluções personalizadas para diferentes perfis de consumo.</p>
+              <h3>Instalação própria</h3>
+              <p>Equipe própria para executar o projeto conforme a necessidade do cliente.</p>
             </article>
           </div>
 
-          <a className="primaryButton wide" href="#simulador">
+          <a className="primaryButton wide" href="#orcamento">
             <Zap size={16} />
-            Simular minha economia
+            Solicitar orçamento
           </a>
         </div>
 
@@ -1506,7 +1560,7 @@ function About() {
           <SectionLabel>Sobre a PROJEM</SectionLabel>
           <h2>Engenharia que transforma energia em resultados.</h2>
           <p>
-            A PROJEM é uma empresa de engenharia elétrica especializada em projetos fotovoltaicos, com <strong>mais de 12 anos de mercado</strong> e <strong>mais de 3000 projetos solares</strong>. Atuamos com análise técnica, dimensionamento preciso e soluções para reduzir custos e aumentar a eficiência no uso da energia.
+            A PROJEM atua há <strong>mais de 12 anos</strong> e já instalou <strong>mais de 3.000 projetos solares</strong> na região. O trabalho combina engenharia especializada, instalação própria e um pós-venda preparado para acompanhar o cliente depois da instalação. A proposta é dimensionar o sistema de acordo com a necessidade real, sem vender equipamento que o cliente não precisa.
           </p>
 
           <div className="aboutIcons">
@@ -1527,18 +1581,51 @@ function About() {
   );
 }
 
+function KitsSection() {
+  const kits = [
+    { size: "4,20 kWp", bill: "fatura a partir de R$ 500", price: "R$ 14.900" },
+    { size: "7,00 kWp", bill: "fatura a partir de R$ 800", price: "R$ 18.900" },
+    { size: "9,00 kWp", bill: "fatura a partir de R$ 1.000", price: "R$ 24.900" },
+  ];
+  return (
+    <section className="kitsSection">
+      <div className="pageWidth">
+        <SectionLabel>Kits solares</SectionLabel>
+        <div className="kitsHeader"><h2>Kits a partir de</h2><p>Os valores abaixo são referências iniciais. O dimensionamento final depende do consumo e das condições do imóvel.</p></div>
+        <div className="kitGrid">{kits.map((kit) => <article className="kitCard" key={kit.size}><span>{kit.bill}</span><strong>{kit.size}</strong><b>{kit.price}</b><small>Financie ou parcele no cartão*</small></article>)}</div>
+        <p className="kitFootnote">*Financiamento sujeito à análise do banco. O sistema recomendado pode mudar após a análise técnica.</p>
+      </div>
+    </section>
+  );
+}
+
+function Testimonials() {
+  const testimonials = [
+    { name: "Marisa Zink", text: "Muito bom atendimento, bastante agilidade na entrega e instalação dos produtos. Vendedor prestativo e atencioso tirando todas as dúvidas sempre quando solicitado.", image: reviewMarisaImg },
+    { name: "Teny Cabeireleiro", text: "As placas solares instaladas são de altíssima qualidade, e o atendimento dos funcionários foi impecável. A instalação foi feita com muito capricho e atenção aos detalhes.", image: reviewTenyImg },
+    { name: "Camila Thoma", text: "Empresa séria, cumpre os prazos e oferece equipamentos de primeira linha. Suporte técnico rápido e eficiente." },
+  ];
+  return (
+    <section id="analises" className="testimonialsSection">
+      <div className="pageWidth">
+        <div className="testimonialsHeader"><SectionLabel>Experiência de clientes</SectionLabel><h2>Atendimento que continua depois da instalação.</h2><p>A avaliação pública dos clientes reforça um dos principais diferenciais da PROJEM: suporte e acompanhamento.</p></div>
+        <div className="testimonialGrid">{testimonials.map((item) => <article className="testimonialCard" key={item.name}>{item.image && <img className="testimonialProof" src={item.image} alt={`Avaliação de ${item.name} no Google`} />}<div className="stars">★★★★★</div><p>“{item.text}”</p><strong>{item.name}</strong><small>Avaliação no Google</small></article>)}</div>
+      </div>
+    </section>
+  );
+}
 function RegionFaq() {
   return (
-    <section id="analises" className="regionFaq">
+    <section id="regiao" className="regionFaq">
       <div className="pageWidth regionFaqGrid">
         <div className="regionBox">
           <SectionLabel>Atendimento regional</SectionLabel>
           <h2>Santa Rosa/RS e região</h2>
-          <p>Atuamos com atendimento próximo e análise técnica especializada.</p>
+          <p>Foco em Santa Rosa e atendimento em um raio médio de aproximadamente 80 km.</p>
 
           <div className="regionText">
             <MapPin size={19} />
-            <span>Santa Rosa/RS, Horizontina, Três de Maio, Santo Ângelo, Panambi e região.</span>
+            <span>Santa Rosa, Santo Ângelo, Ijuí, Horizontina, Giruá, Santo Cristo, Cândido Godói, Chiapetta e Três de Maio.</span>
           </div>
 
           <ImageSlot
@@ -2132,7 +2219,10 @@ export default function App() {
       <Services />
       <TrustBand />
       <About />
+      <KitsSection />
+      <Testimonials />
       <RegionFaq />
+      <QuoteForm />
       <Footer />
       <FloatingWhatsappButton />
     </main>
