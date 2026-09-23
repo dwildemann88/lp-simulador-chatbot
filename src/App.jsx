@@ -884,67 +884,35 @@ function Header() {
 }
 
 function Hero() {
+  function handleSimulatorClick() {
+    trackEvent("cta_click", { cta_name: "simulate_economy", location: "hero", destination: "simulator" });
+    markSimulatorStarted("hero");
+  }
+
+  function handleWhatsappClick() {
+    trackEvent("cta_click", { cta_name: "whatsapp", location: "hero", destination: "whatsapp" });
+    trackEvent("whatsapp_click", { origem_formulario: "hero", origem_cta: "hero_whatsapp" });
+  }
+
   return (
     <section id="inicio" className="hero">
       <div className="heroBackground">
-        {imageSlots.heroCouple ? (
-          <img src={imageSlots.heroCouple} alt="Casal em frente a uma residência com energia solar" />
-        ) : (
-          <div className="heroImagePlaceholder" aria-label="Imagem de fundo do casal pendente" />
-        )}
+        {imageSlots.heroCouple ? <img src={imageSlots.heroCouple} alt="Casal em frente a uma residência com energia solar" /> : <div className="heroImagePlaceholder" aria-label="Imagem de fundo do casal pendente" />}
       </div>
-
       <div className="heroOverlay" />
-
       <div className="pageWidth heroContent">
         <div className="heroCopy">
-          <h1>
-            Antes de pedir orçamento, entenda sua <span>conta de luz.</span>
-          </h1>
-          <p>
-            Simule sua economia ou envie sua fatura para uma análise técnica gratuita e descubra o melhor caminho para pagar a luz pelo preço certo.
-          </p>
-
+          <h1>Energia solar em Santa Rosa <span>e região.</span></h1>
+          <p>Projeto e acompanhamento técnico realizados por engenheiro, instalação própria e pós-venda preparado para acompanhar você depois da instalação.</p>
           <div className="heroButtons">
-            <a href="#simulador" className="primaryButton">
-              <Zap size={16} />
-              Simular economia
-            </a>
-            <a
-  href="#simulador"
-  className="outlineButton dark"
-  onClick={() => {
-    window.dispatchEvent(
-      new CustomEvent("projem:setSimulatorMode", {
-        detail: "invoice",
-      })
-    );
-
-    trackEvent("hero_invoice_click", {
-      origem_formulario: "hero",
-      origem_cta: "enviar_minha_fatura",
-    });
-  }}
->
-  <FileText size={16} />
-  Enviar minha fatura
-</a>
+            <a href="#simulador" className="primaryButton" onClick={handleSimulatorClick}><Zap size={16} />Simular minha economia</a>
+            <a href={buildWhatsappUrl(whatsappDefaultMessage)} className="outlineButton dark" target="_blank" rel="noopener noreferrer" onClick={handleWhatsappClick}><MessageCircle size={16} />Falar pelo WhatsApp</a>
           </div>
-        </div>
-
-        <div className="heroMockupArea">
-          <ImageSlot
-            src={imageSlots.heroFloatingMockup}
-            title="Imagem complementar"
-            brief="Slot reservado para o mockup/print final. Nenhum telefone é criado em JSX."
-            className="heroMockupSlot"
-          />
         </div>
       </div>
     </section>
   );
 }
-
 function ProofBar() {
   return (
     <section className="proofBar">
@@ -1391,298 +1359,30 @@ function SimulateFlow() {
 }
 
 
-function InvoiceFlow() {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [geo, setGeo] = useState(null);
-  const [unitType, setUnitType] = useState("Residencial");
-  const [billReference, setBillReference] = useState("");
-  const [file, setFile] = useState(null);
-  const [locationStatus, setLocationStatus] = useState({ type: "", text: "" });
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function submitInvoice() {
-    const billValue = parseCurrency(billReference);
-
-    setError("");
-
-    if (!name.trim()) {
-      setError("Informe seu nome.");
-      return;
-    }
-
-    if (!phoneIsValid(phone)) {
-      setError("Informe um WhatsApp válido.");
-      return;
-    }
-
-    if (!city.trim()) {
-      setError("Informe a cidade ou use a localização automática.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const phoneNumber = cleanNumber(phone);
-    const payload = normalizeLeadPayload({
-      ...buildBasePayload("envio_fatura"),
-      evento_secundario: "submit_invoice",
-      nome: name.trim(),
-      telefone: phoneNumber,
-      whatsapp: phoneNumber,
-      cidade: city.trim(),
-      cidade_digitada: city.trim(),
-      cidade_origem: geo ? "localizacao_automatica" : "manual",
-      latitude: geo?.latitude || "",
-      longitude: geo?.longitude || "",
-      tipo_imovel: unitType,
-      tipo_unidade: unitType,
-      tipo_telhado: "",
-      valor_conta: billValue || "",
-      conta: billValue || "",
-      valor_conta_formatado: billValue ? formatMoney(billValue) : "",
-      estimativa_economia_mensal: "",
-      economia_anual_estimada: "",
-      nova_conta_estimada: "",
-      percentual_economia: "",
-      fatura_enviada: Boolean(file),
-      fatura_nome_arquivo: file?.name || "",
-      fatura_tamanho_bytes: file?.size || "",
-      fatura_tipo: file?.type || "",
-      status_lead: "Novo",
-      nivel_intencao: "Alta",
-      prioridade_comercial: getCommercialPriority({
-        billValue: billValue || 0,
-        hasInvoice: true,
-      }),
-      consentimento_contato: true,
-      etapa_finalizada: "formulario_fatura",
-      origem_cta: "envio_fatura_whatsapp",
-      ja_fez_orcamento: "Não informado",
-    });
-
-    const whatsappMessage = [
-      "Olá, gostaria de enviar minha fatura para uma análise técnica da PROJEM.",
-      `Nome: ${name.trim()}`,
-      `WhatsApp: ${phone}`,
-      `Cidade: ${city}`,
-      `Tipo de unidade: ${unitType}`,
-      billReference ? `Valor aproximado da conta: ${billReference}` : null,
-      file ? `Arquivo selecionado no site: ${file.name}` : "Vou anexar a fatura por aqui.",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    await submitLead({
-      payload,
-      file,
-      whatsappMessage,
-      eventName: "submit_invoice",
-    });
-
-    setIsSubmitting(false);
-  }
-
-  return (
-    <div className="invoicePanel" id="fatura">
-      <div className="invoiceIntro">
-        <h3>Envie sua fatura para análise</h3>
-        <p>
-          Preencha os dados e vá para o WhatsApp. O arquivo da fatura é opcional;
-          você também pode anexar direto na conversa.
-        </p>
-      </div>
-
-      <div className="invoiceForm">
-        <label>
-          Nome
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Seu nome"
-          />
-        </label>
-
-        <label>
-          WhatsApp
-          <input
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="(55) 9968-6302"
-          />
-        </label>
-
-        <label>
-          Tipo de unidade
-          <select
-            value={unitType}
-            onChange={(event) => setUnitType(event.target.value)}
-          >
-            {unitTypes.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Valor aproximado da conta
-          <input
-            value={billReference}
-            onChange={(event) =>
-              setBillReference(currencyInput(event.target.value))
-            }
-            placeholder="Ex.: R$ 850,00"
-            inputMode="numeric"
-          />
-        </label>
-
-        <div className="invoiceLocation">
-          <LocationField
-            city={city}
-            setCity={setCity}
-            locationStatus={locationStatus}
-            setLocationStatus={setLocationStatus}
-            setGeo={setGeo}
-          />
-        </div>
-
-        <label className={`fileField invoiceUploadBox ${file ? "hasFile" : ""}`}>
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.webp"
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
-          />
-          <span className="uploadIconBox">
-            <Upload size={24} />
-          </span>
-          <span className="uploadText">
-            <strong>{file ? "Fatura anexada" : "Clique aqui para anexar sua fatura"}</strong>
-            <small>{file ? file.name : "PDF, foto ou print da conta de luz"}</small>
-          </span>
-          <span className="uploadBadge">opcional</span>
-        </label>
-      </div>
-
-      {error && <div className="formError">{error}</div>}
-
-      <button
-        type="button"
-        className="primaryButton full invoiceSubmitButton"
-        onClick={submitInvoice}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Enviando..." : "Ir para o WhatsApp"}
-      </button>
-    </div>
-  );
-}
-
 function EconomySection() {
-  const [mode, setMode] = useState("simulate");
-useEffect(() => {
-  function handleModeRequest(event) {
-    if (event.detail === "invoice") {
-      setMode("invoice");
-    }
-
-    if (event.detail === "simulate") {
-      setMode("simulate");
-    }
-
-    window.setTimeout(() => {
-      document.getElementById("simulador")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 50);
-  }
-
-  function handleHashChange() {
-    if (window.location.hash === "#fatura") {
-      handleModeRequest({ detail: "invoice" });
-    }
-
-    if (window.location.hash === "#simulador") {
-      handleModeRequest({ detail: "simulate" });
-    }
-  }
-
-  window.addEventListener("projem:setSimulatorMode", handleModeRequest);
-  window.addEventListener("hashchange", handleHashChange);
-
-  handleHashChange();
-
-  return () => {
-    window.removeEventListener("projem:setSimulatorMode", handleModeRequest);
-    window.removeEventListener("hashchange", handleHashChange);
-  };
-}, []);
-  function setModeTracked(nextMode) {
-    setMode(nextMode);
-    trackEvent("simulator_mode_change", {
-      mode: nextMode,
-      origem_formulario: nextMode === "simulate" ? "simulador_solar" : "envio_fatura",
-    });
-  }
-
   return (
     <section id="simulador" className="economySection">
       <div className="pageWidth economyGrid">
         <div className="economyText">
           <SectionLabel>Simule sua economia</SectionLabel>
           <h2>Descubra quanto você pode economizar.</h2>
-          <p>
-            Nossa simulação é rápida, gratuita e sem compromisso. Em poucos passos, você entende sua estrutura e potencial de economia.
-          </p>
-
+          <p>Em poucos passos, informe seu consumo e perfil. A estimativa só aparece depois que os dados necessários forem preenchidos.</p>
           <ul className="iconList">
             <li><BadgeCheck size={18} /> Análise clara e objetiva</li>
-            <li><BadgeCheck size={18} /> Projeções realistas</li>
-            <li><BadgeCheck size={18} /> Sem compromisso</li>
-            <li><BadgeCheck size={18} /> 100% confidencial</li>
+            <li><BadgeCheck size={18} /> Estimativa inicial de investimento</li>
+            <li><BadgeCheck size={18} /> Atendimento regional</li>
           </ul>
         </div>
-
         <div className="simulatorVisualSlotWrap">
-          <ImageSlot
-            src={imageSlots.simulatorVisual}
-            title="Imagem futura do simulador"
-            brief="Slot reservado para imagem/preview do simulador."
-            className="simulatorVisualSlot"
-          />
+          <ImageSlot src={imageSlots.simulatorVisual} title="Imagem do simulador" brief="Visual complementar do simulador." className="simulatorVisualSlot" />
         </div>
-
         <div className="flowShell">
-          <div className="modeTabs">
-            <button
-              type="button"
-              className={mode === "simulate" ? "active" : ""}
-              onClick={() => setModeTracked("simulate")}
-            >
-              Simular economia
-            </button>
-            <button
-              type="button"
-              className={mode === "invoice" ? "active" : ""}
-              onClick={() => setModeTracked("invoice")}
-            >
-              Enviar fatura
-            </button>
-          </div>
-
-          <div key={mode} className="modeContent">
-            {mode === "simulate" ? <SimulateFlow /> : <InvoiceFlow />}
-          </div>
+          <SimulateFlow />
         </div>
       </div>
     </section>
   );
 }
-
 function StepsSection() {
   return (
     <section className="stepsSection">
