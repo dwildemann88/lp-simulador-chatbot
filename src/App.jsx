@@ -2104,9 +2104,12 @@ export default function App() {
   useEffect(() => {
     collectAttribution();
     initGa();
-    trackEvent("page_view_landing", {
-      origem_formulario: "page_view",
+    const cleanupBehavior = setupBehaviorTracking();
+    trackEvent("page_view", {
+      page_type: "landing_solar",
+      page_name: "home",
     });
+    return cleanupBehavior;
   }, []);
 
   return (
