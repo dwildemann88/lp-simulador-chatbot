@@ -1581,15 +1581,15 @@ function About() {
 
 function Testimonials() {
   const testimonials = [
-    { name: "Marisa Zink", role: "Cliente", stars: 5 },
-    { name: "Teny Cabeireleiro", role: "Cliente", stars: 5 },
-    { name: "Camila Thoma", role: "Cliente", stars: 5 },
+    { name: "Marisa Zink", role: "Cliente", stars: 5, text: "Muito bom atendimento, bastante agilidade na entrega e instalação dos produtos. Vendedor prestativo e atencioso tirando todas as dúvidas sempre quando solicitado." },
+    { name: "Teny Cabeireleiro", role: "Cliente", stars: 5, text: "Gostaria de expressar minha imensa gratidão à Projem pela excelente experiência que tive. As placas solares instaladas são de altíssima qualidade, e o atendimento dos funcionários foi impecável. A instalação foi feita com muito capricho e atenção aos detalhes. Além disso, o proprietário demonstrou um alto nível de correção e profissionalismo. Recomendo a Projem com total confiança!" },
+    { name: "Camila Thoma", role: "Cliente", stars: 5, text: "Empresa séria, cumpre os prazos e oferece equipamentos de primeira linha. Suporte técnico rápido e eficiente. Recomendo com tranquilidade para quem busca energia solar." },
   ];
   return (
     <section id="analises" className="testimonialsSection">
       <div className="pageWidth">
         <div className="testimonialsHeader"><SectionLabel>Experiência de clientes</SectionLabel><h2>Atendimento que continua depois da instalação.</h2><p>A avaliação pública dos clientes reforça um dos principais diferenciais da PROJEM: suporte e acompanhamento.</p></div>
-        <div className="testimonialGrid">{testimonials.map((item) => <article className="testimonialCard" key={item.name}><div className="stars" aria-label={`${item.stars} de 5 estrelas`}>{"★".repeat(item.stars)}</div><strong>{item.name}</strong><span className="testimonialRole">{item.role}</span><small>Google</small></article>)}</div>
+        <div className="testimonialGrid">{testimonials.map((item) => <article className="testimonialCard" key={item.name}><div className="stars" aria-label={`${item.stars} de 5 estrelas`}>{"★".repeat(item.stars)}</div><p>{item.text}</p><strong>{item.name}</strong><span className="testimonialRole">{item.role}</span><small>Google</small></article>)}</div>
       </div>
     </section>
   );
