@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sitesolar.projem.com.br/sitemap.xml
