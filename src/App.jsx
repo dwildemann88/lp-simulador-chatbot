@@ -1284,39 +1284,47 @@ function SimulateFlow() {
       )}
 
       {step === 5 && (
-        <div className="flowPanel resultGate">
-          <h3>Para liberar sua estimativa</h3>
-          <p>Preencha seus dados. Assim a PROJEM consegue salvar o lead e continuar a análise se você quiser avançar.</p>
-
-          <div className="leadForm">
-            <label>
-              Nome
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" />
-            </label>
-
-            <label>
-              WhatsApp
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(55) 9968-6302" />
-            </label>
+        <div className="flowPanel">
+          <h3>Quando você pretende instalar?</h3>
+          <p>Essa informação ajuda a equipe a priorizar o atendimento.</p>
+          <div className="choiceGrid">
+            {installationIntents.map((item) => (
+              <button key={item.id} type="button" className={installationIntent === item.id ? "selected" : ""} onClick={() => setInstallationIntent(item.id)}>
+                <strong>{item.label}</strong>
+                <span>{item.helper}</span>
+              </button>
+            ))}
           </div>
-
-          <button
-  type="button"
-  className="primaryButton full revealButton"
-  onClick={() => {
-    if (window.gtag_report_conversion) {
-      window.gtag_report_conversion();
-    }
-    revealEstimate();
-  }}
-  disabled={isSubmitting}
->
-  {isSubmitting ? "Enviando..." : "Ver minha estimativa"}
-</button>
         </div>
       )}
 
-      {step === 6 && isCalculating && (
+      {step === 6 && (
+        <div className="flowPanel resultGate">
+          <h3>Para liberar sua estimativa</h3>
+          <p>Informe seu nome para continuar.</p>
+          <div className="leadForm">
+            <label>
+              Nome
+              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" autoComplete="name" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {step === 7 && (
+        <div className="flowPanel resultGate">
+          <h3>Agora, seu WhatsApp</h3>
+          <p>Precisamos dele para registrar o lead e permitir o contato da SDR.</p>
+          <div className="leadForm">
+            <label>
+              WhatsApp
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(55) 9968-6302" inputMode="tel" autoComplete="tel" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {step === 8 && isCalculating && (
         <div className="loadingPanel">
           <div className="loadingRing">
             <Zap size={28} />
@@ -1331,7 +1339,7 @@ function SimulateFlow() {
         </div>
       )}
 
-      {step === 6 && !isCalculating && (
+      {step === 8 && !isCalculating && (
         <div className="flowPanel resultFlow">
           <div>
             <h3>Sua estimativa inicial</h3>
@@ -1365,15 +1373,15 @@ function SimulateFlow() {
       {error && <div className="formError">{error}</div>}
 
       <div className="flowActions">
-        {step > 1 && step < 6 && (
+        {step > 1 && step < 8 && (
           <button type="button" className="secondaryButton" onClick={back}>
             Voltar
           </button>
         )}
 
-        {step < 5 && (
-          <button type="button" className="primaryButton" onClick={next}>
-            Continuar
+        {step < 8 && (
+          <button type="button" className="primaryButton" onClick={step === 7 ? revealEstimate : next} disabled={isSubmitting}>
+            {step === 7 ? (isSubmitting ? "Enviando..." : "Ver minha estimativa") : "Continuar"}
             <ArrowRight size={16} />
           </button>
         )}
