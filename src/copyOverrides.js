@@ -39,14 +39,18 @@ function setTextKeepingIcon(element, text) {
 }
 
 function trackWhatsappSource(source) {
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: 'whatsapp_click',
+  const payload = {
     event_category: 'solar_lead',
+    page_path: window.location.pathname,
+    source_site: window.location.hostname || 'sitesolar.projem.com.br',
     origem_formulario: 'landing_fundo_funil',
     origem_cta: source,
-    page_path: window.location.pathname,
-  });
+  };
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ event: 'whatsapp_click', ...payload });
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'whatsapp_click', payload);
+  }
 }
 
 function configureWhatsappLink(element, source, message = WHATSAPP_QUOTE_MESSAGE) {
@@ -57,9 +61,7 @@ function configureWhatsappLink(element, source, message = WHATSAPP_QUOTE_MESSAGE
   element.rel = 'noopener noreferrer';
   element.classList.add('whatsappDestination');
 
-  if (element.dataset.whatsappTrackingBound === '1') return;
-  element.dataset.whatsappTrackingBound = '1';
-  element.addEventListener('click', () => trackWhatsappSource(source), true);
+  // O clique do CTA do hero é instrumentado pelo React para evitar eventos duplicados.
 }
 
 function applyHeroChanges() {
