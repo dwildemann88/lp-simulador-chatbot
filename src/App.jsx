@@ -223,11 +223,11 @@ const serviceItems = [
 ];
 
 const steps = [
-  { title: "Conta de luz", text: "Informe o valor ou envie sua fatura.", icon: FileText },
-  { title: "Simulação", text: "Avance pelas etapas do consumo.", icon: BarChart3 },
-  { title: "Envio da fatura", text: "Você pode enviar a conta pelo WhatsApp.", icon: Upload },
-  { title: "Análise técnica", text: "A equipe avalia seu cenário.", icon: ShieldCheck },
-  { title: "Economia", text: "Receba uma estimativa com mais clareza.", icon: Zap },
+  { title: "Simulação", text: "Informe seu consumo e veja uma estimativa inicial.", icon: BarChart3 },
+  { title: "Qualificação", text: "Perfil, telhado, cidade e prazo de instalação.", icon: ClipboardCheck },
+  { title: "Estimativa", text: "Receba uma projeção antes de falar com a equipe.", icon: Zap },
+  { title: "Análise técnica", text: "Seu cenário é avaliado por um engenheiro especializado.", icon: ShieldCheck },
+  { title: "Orçamento", text: "A SDR conduz o próximo passo conforme seu momento.", icon: UsersRound },
 ];
 
 const faqItems = [
