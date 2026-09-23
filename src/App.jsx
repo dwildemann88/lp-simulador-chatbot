@@ -174,15 +174,21 @@ const structureTypes = [
 
 const cityOptions = [
   "Santa Rosa",
-  "Giruá",
-  "Três de Maio",
-  "Horizontina",
-  "Santo Cristo",
   "Santo Ângelo",
   "Ijuí",
-  "Cerro Largo",
-  "Cruz Alta",
-  "São Luiz Gonzaga",
+  "Horizontina",
+  "Giruá",
+  "Santo Cristo",
+  "Cândido Godói",
+  "Chiapetta",
+  "Três de Maio",
+];
+
+const installationIntents = [
+  { id: "0_3_meses", label: "Até 3 meses", helper: "Quero instalar em breve" },
+  { id: "3_6_meses", label: "De 3 a 6 meses", helper: "Estou me planejando" },
+  { id: "6_12_meses", label: "De 6 a 12 meses", helper: "Ainda tenho algum prazo" },
+  { id: "sem_prazo", label: "Ainda pesquisando", helper: "Quero entender melhor primeiro" },
 ];
 
 const serviceItems = [
@@ -389,7 +395,7 @@ function buildBasePayload(originForm) {
     origem: originForm,
     evento: PRIMARY_LEAD_EVENT,
     evento_origem: "site_projem_solar",
-    fonte_site: "fastidious-dolphin-5916a0.netlify.app",
+    fonte_site: window.location.hostname || "sitesolar.projem.com.br",
     timestamp: now.toISOString(),
     data: toSheetDate(now),
     pagina_url: window.location.href,
@@ -411,11 +417,13 @@ function buildBasePayload(originForm) {
     fbclid: attribution.fbclid || "",
   };
 }
-function getCommercialPriority({ billValue, hasInvoice }) {
-  if (hasInvoice && billValue >= 850) return "Alta";
-  if (hasInvoice) return "Média Alta";
-  if (billValue >= 1000) return "Alta";
-  if (billValue >= 650) return "Média";
+function getCommercialPriority({ billValue = 0, installationIntent = "sem_prazo", hasInvoice = false }) {
+  const nearTerm = installationIntent === "0_3_meses";
+  const midTerm = installationIntent === "3_6_meses";
+  if (billValue >= 850 && nearTerm) return "Alta";
+  if (billValue >= 500 && (nearTerm || midTerm)) return "Média Alta";
+  if (billValue >= 500) return "Média";
+  if (hasInvoice && billValue >= 400) return "Média";
   return "Baixa";
 }
 
