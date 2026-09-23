@@ -232,24 +232,28 @@ const steps = [
 
 const faqItems = [
   {
-    question: "A análise da fatura gera algum custo ou compromisso?",
-    answer:
-      "Não. A análise inicial é gratuita e sem compromisso. A PROJEM avalia sua fatura para entender seu consumo e indicar se a energia solar faz sentido para o seu caso.",
+    question: "Quanto tempo leva para instalar o sistema?",
+    answer: "O prazo de instalação é de aproximadamente 30 dias, considerando as etapas técnicas e as condições do projeto.",
   },
   {
-    question: "Preciso fazer alguma manutenção no sistema?",
-    answer:
-      "Sim, mas é uma manutenção simples e periódica. Em geral, envolve limpeza dos módulos e conferência do funcionamento do sistema para manter a geração eficiente.",
+    question: "Posso usar um único sistema para duas casas?",
+    answer: "Pela legislação vigente, não é possível estruturar uma nova instalação dessa forma como era feito anteriormente. Existem regras específicas para sistemas instalados antes da mudança da legislação.",
   },
   {
-    question: "Quanto tempo leva para receber a análise técnica?",
-    answer:
-      "Após o envio da fatura e dos dados básicos, a equipe consegue fazer uma avaliação inicial e retornar pelo WhatsApp com mais clareza sobre economia, viabilidade e próximos passos.",
+    question: "Por quanto tempo o sistema produz energia?",
+    answer: "Os módulos são projetados para operar por cerca de 25 anos, com redução gradual da capacidade de geração ao longo do tempo.",
   },
   {
-    question: "A PROJEM cuida de toda a parte de documentação?",
-    answer:
-      "Sim. A PROJEM acompanha o processo técnico, projeto, documentação e etapas necessárias para a instalação e regularização do sistema junto à concessionária.",
+    question: "E se meu consumo aumentar depois da instalação?",
+    answer: "O sistema deve ser dimensionado de acordo com o consumo atual e o planejamento do cliente. Se o consumo crescer, é possível avaliar uma ampliação do sistema.",
+  },
+  {
+    question: "Quantas placas eu preciso?",
+    answer: "Depende do consumo, da área disponível, da orientação do telhado e do investimento pretendido. Também é possível começar com um sistema menor e ampliar posteriormente.",
+  },
+  {
+    question: "O financiamento é garantido?",
+    answer: "Não. As condições de financiamento dependem da análise e aprovação da instituição financeira.",
   },
 ];
 
